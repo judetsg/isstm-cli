@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="8ab45611-358e-4e7a-8c84-4962922ecf1c" name="IsstmLocalServer" url="http://localhost">
+        <fileTransfer mountedRoot="$USER_HOME$/Dev_In_Progress/isstm-cli" accessType="MOUNT" port="0" />
+      </webServer>
+    </option>
+  </component>
+</project>
