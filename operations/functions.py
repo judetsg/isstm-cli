@@ -56,6 +56,7 @@ def saisir_note_examen():
     # 4. choisir si on veut saisir les codes ou les notes
     activite = chooser.selector('Type de Saisie', [
         questionary.Choice(title='Anonymat', value='saisie_code'),
+        questionary.Choice(title='Correction Anonymat', value='correction_anonymat'),
         questionary.Choice(title='Note',value='saisie_note')
     ])
     # redis_client.set('activite', activite)
@@ -97,6 +98,35 @@ def saisir_note_examen():
                     'id_ec': ec,
                     'session': session,
                     'anonymat': lettre_code + rang,
+                }).run(conn)
+            except KeyboardInterrupt:
+                break
+
+    if activite == 'correction_anonymat':
+
+        # Saisir les lettres du code si on veut saisir les Anonymats
+        lettre_code = questionary.text(message='Entrez les lettres du code').ask()
+        # redis_client.set('lettre_code', lettre_code)
+
+        # afficher la liste des étudiants en utilisant le niveau choisi
+        while True:
+            try:
+                os.system('clear')
+                etudiant_id = chooser.tuple_selector('Choisir un étudiant: ', utility_functions.select_etudiant(conn, niveau_choisi))
+
+                # saisir le rang
+                rang = questionary.text('Rang:').ask()
+
+                # saisir les anonymats
+                """
+                Pour saisir les anonymats, il nous faut l'année universitaire, le niveau, l'ec, le semestre et l'id de l'etudiant.
+                Nous allons utiliser et afficher les etudiants, en choisir un entrer son anonymat et ainsi de suite,
+                jusqu'à ce que nous cassons la boucle
+                """
+                r.table('notes')\
+                    .filter((r.row['etudiant_id'] == etudiant_id) & (r.row['anonymat'].match(f'^{lettre_code}')))\
+                    .update({
+                    'anonymat': lettre_code + rang
                 }).run(conn)
             except KeyboardInterrupt:
                 break
