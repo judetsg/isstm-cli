@@ -10,6 +10,7 @@ r = RethinkDB()
 # Main menu choices
 choices = [
     "Saisir Note Examen",
+    "Saisir Note Examen Sans Anonymat",
     "Saisir Note CC",
     "Quitter"
 ]

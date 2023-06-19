@@ -12,5 +12,10 @@ def run_app():
     execute(user_choice)
 
 def execute(choice):
-    operations[choice]()
-    # os.system('clear')
+    if choice == 'Saisir Note Examen Sans Anonymat':
+        operations[choice]('EX')
+    elif choice == 'Saisir Note CC':
+        operations[choice]('CC')
+    else:
+        operations[choice]()
+        # os.system('clear')
