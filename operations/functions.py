@@ -13,6 +13,7 @@ r = RethinkDB()
 # connect to the Rethinkdb database
 conn = r.connect(db=db)
 
+
 def saisir_note_examen():
     # while True:
     """
@@ -57,7 +58,7 @@ def saisir_note_examen():
     activite = chooser.selector('Type de Saisie', [
         questionary.Choice(title='Anonymat', value='saisie_code'),
         questionary.Choice(title='Correction Anonymat', value='correction_anonymat'),
-        questionary.Choice(title='Note',value='saisie_note')
+        questionary.Choice(title='Note', value='saisie_note')
     ])
     # redis_client.set('activite', activite)
 
@@ -78,7 +79,8 @@ def saisir_note_examen():
         while True:
             try:
                 os.system('clear')
-                etudiant_id = chooser.tuple_selector('Choisir un étudiant: ', utility_functions.select_etudiant(conn, niveau_choisi))
+                etudiant_id = chooser.tuple_selector('Choisir un étudiant: ',
+                                                     utility_functions.select_etudiant(conn, niveau_choisi))
 
                 # saisir le rang
                 rang = questionary.text('Rang:').ask()
@@ -112,7 +114,8 @@ def saisir_note_examen():
         while True:
             try:
                 os.system('clear')
-                etudiant_id = chooser.tuple_selector('Choisir un étudiant: ', utility_functions.select_etudiant(conn, niveau_choisi))
+                etudiant_id = chooser.tuple_selector('Choisir un étudiant: ',
+                                                     utility_functions.select_etudiant(conn, niveau_choisi))
 
                 # saisir le rang
                 rang = questionary.text('Rang:').ask()
@@ -123,8 +126,8 @@ def saisir_note_examen():
                 Nous allons utiliser et afficher les etudiants, en choisir un entrer son anonymat et ainsi de suite,
                 jusqu'à ce que nous cassons la boucle
                 """
-                r.table('notes')\
-                    .filter((r.row['etudiant_id'] == etudiant_id) & (r.row['anonymat'].match(f'^{lettre_code}')))\
+                r.table('notes') \
+                    .filter((r.row['etudiant_id'] == etudiant_id) & (r.row['anonymat'].match(f'^{lettre_code}'))) \
                     .update({
                     'anonymat': lettre_code + rang
                 }).run(conn)
@@ -140,7 +143,8 @@ def saisir_note_examen():
             try:
                 os.system('clear')
                 anonymat_id = chooser.tuple_selector('Choisir anonymat: ',
-                                                        utility_functions.select_note(conn, annee, niveau, semestre, ec, session))
+                                                     utility_functions.select_note(conn, annee, niveau, semestre, ec,
+                                                                                   session))
                 print(f"Anonymat: {anonymat_id}")
                 # saisir la note
                 note = questionary.text('Note:').ask()
@@ -155,11 +159,12 @@ def saisir_note_examen():
             except KeyboardInterrupt:
                 break
 
+
 def quitter():
     print("Tapez Ctrl+C pour quitter")
 
 
-def saisir_note_cc():
+def saisir_note(type):
     """
         0. Choisir l'année universitaire
         1. Choisir le niveau
@@ -192,7 +197,7 @@ def saisir_note_cc():
     # print(f"EC: {(redis_client.get('ec_choisi')).decode()}")
 
     # choisir la session
-    session = '1' # il n'y a pas de note de CC à la session 2
+    session = '1'  # il n'y a pas de note de CC à la session 2
     redis_client.set('session', session)
 
     # recuperer les variables nécessaires sur redis
@@ -220,6 +225,7 @@ def saisir_note_cc():
             Nous allons utiliser et afficher les etudiants, en choisir un entrer son anonymat et ainsi de suite,
             jusqu'à ce que nous cassons la boucle
             """
+
             r.table('notes').insert({
                 'id': r.uuid(),
                 'id_annee': annee,
@@ -229,7 +235,9 @@ def saisir_note_cc():
                 'id_ec': ec,
                 'session': session,
                 'note': float(decimal_note),
-                'type': 'CC'
+                'type': type
             }).run(conn)
+
+
         except KeyboardInterrupt:
             break
