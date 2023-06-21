@@ -98,3 +98,11 @@ def select_note(rethinkdb_connection, annee, niveau, semestre, ec, session):
     ]
 
     return list_of_notes
+
+"""
+Cette fonction permet d'avoir des données autres que l'id à partir d'une table
+"""
+def get_pretty_name(rethinkdb_connection, table, id, champ):
+    raw_result = r.table(table).get(id).run(rethinkdb_connection)
+    result = raw_result[champ]
+    return result

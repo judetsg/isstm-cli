@@ -11,6 +11,8 @@ r = RethinkDB()
 choices = [
     "Saisir Note Examen",
     "Saisir Note Examen Sans Anonymat",
+    'Moyenne EC - Session 1',
+    'Matiere à repasser - Session 1',
     "Saisir Note CC",
     "Quitter"
 ]
