@@ -478,7 +478,10 @@ def generer_matiere_a_repasser_session_1():
 
         for note_dict in notes:
             ec = utility_functions.get_pretty_name(conn, 'element_const', note_dict['id_ec'], 'appellation_ec')
-            row_to_insert = (niveau_pretty, semestre_pretty, session , matricule, nom, prenoms, ec, note_dict['note'])
+            if note_dict['note'] >= 10:
+                row_to_insert = (niveau_pretty, semestre_pretty, session , matricule, nom, prenoms, ec, "O")
+            else:
+                row_to_insert = (niveau_pretty, semestre_pretty, session, matricule, nom, prenoms, ec, "X")
             classeur.append(row_to_insert)
 
     matiere_a_repasser.save(os.path.join(repertoire_xlsx, nom_du_ficher_excel))
@@ -487,11 +490,16 @@ def generer_matiere_a_repasser_session_1():
     # Créer un dataframe pandas
     data = pd.read_excel(os.path.join(repertoire_xlsx, nom_du_ficher_excel))
     # df = pd.DataFrame(sheet.values)
+    data.fillna('', inplace=True)
 
-    # pprint.pprint(df)
+    # pprint.pprint(data)
 
     # Créer un tableau croisé à partir du DataFrame
-    pivot_table = pd.pivot_table(data, values='note', index= ['matricule', 'nom', 'prenoms'], columns='ec')
+    pivot_table = pd.pivot_table(data, values='note', index= ['matricule', 'nom', 'prenoms'], columns='ec',
+                                 aggfunc=lambda x: ''.join(str(v) for v in x),
+                                 fill_value='')
+    # pivot_table['note'] = pivot_table['note'].astype(str)
+    pprint.pprint(pivot_table)
 
     # exporter le pivot table vers excel
     writer = pd.ExcelWriter(os.path.join(repertoire_xlsx, nom_du_ficher_excel))
