@@ -13,6 +13,7 @@ choices = [
     "Saisir Note Examen Sans Anonymat",
     'Moyenne EC - Session 1',
     'Matiere à repasser - Session 1',
+    'Moyenne UE - Session 1',
     "Saisir Note CC",
     "Quitter"
 ]

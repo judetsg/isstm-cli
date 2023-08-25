@@ -1,10 +1,12 @@
 # Saisie des notes d'examen
 import os
+import statistics
 from decimal import Decimal
 import pprint
 from tqdm import tqdm
 import openpyxl
 import pandas as pd
+import pdb
 
 import questionary
 from rethinkdb import RethinkDB
@@ -130,7 +132,9 @@ def saisir_note_examen():
                 jusqu'à ce que nous cassons la boucle
                 """
                 r.table('notes') \
-                    .filter((r.row['etudiant_id'] == etudiant_id) & (r.row['anonymat'].match(f'^{lettre_code}'))) \
+                    .filter((r.row['etudiant_id'] == etudiant_id) & \
+                            (r.row['anonymat'].match(f'^{lettre_code}')) & \
+                            (r.row['id_ec'] == ec)) \
                     .update({
                     'anonymat': lettre_code + rang
                 }).run(conn)
@@ -507,3 +511,110 @@ def generer_matiere_a_repasser_session_1():
 
     # Sauvegarder
     writer.close()
+
+def calculer_moyenne_ue_session_1():
+    """
+    Pour chaque ue, dans un semestre donné, nous allons faire la moyenne de chaque ec.
+    La moyenne de chaque ue du semestre donnera la moyenne du semestre.
+    Si un étudiant obtient la moyenne pour chaque ue, il obtient le semestre
+    :return:
+    """
+
+    # 1.0 Choisir l'année universitaire
+    annee_choices = utility_functions.select_annee(conn)
+    annee_choisi = chooser.selector("Choisissez une année universitaire", annee_choices)
+    redis_client.set('annee', annee_choisi)
+
+    # 1.1 Choisir le niveau
+    niveaux_choices = utility_functions.select_niveau(conn)
+    niveau_choisi = chooser.selector("Choisissez un niveau", niveaux_choices)
+    # Sauver sur redis
+    redis_client.set('niveau_choisi', niveau_choisi)
+
+    # 1.2 choisir le semestre
+    niveau_choisi = redis_client.get('niveau_choisi').decode()
+    semestre_choisi = chooser.selector('Choisissez un semestre', utility_functions.select_semestre(conn, niveau_choisi))
+    redis_client.set('semestre_choisi', semestre_choisi)
+
+    # recuperer les variables nécessaires sur redis
+    annee = redis_client.get('annee').decode()
+    niveau = redis_client.get('niveau_choisi').decode()
+    semestre = redis_client.get('semestre_choisi').decode()
+    session = '1'
+
+    # Obtenir la liste des UE pour un semestre
+    liste_ue_par_semestre = r.table('unite_ens').filter(
+        r.row['semestre_id'].eq(semestre)
+    ).run(conn)
+    liste_ue = []
+    for ue in liste_ue_par_semestre:
+        liste_ue.append(ue['id'])
+
+    # Effacer les moyennes UE precedentes si necessaire
+    # effacer d'abord les notes precedentes s'il y a eu
+    r.table('moyenne_ue').filter(
+        r.and_(
+            r.row['id_annee'].eq(annee),
+            r.row['id_niveau'].eq(niveau),
+            r.row['id_semestre'].eq(semestre),
+            r.row['id_session'].eq('1')
+        )
+    ).delete().run(conn)
+
+    # Obtenir la liste des étudiants pour un niveau
+    list_etudiants = utility_functions.select_etudiant(conn,niveau)
+    # pprint.pprint(list_etudiants)
+
+    for etudiant in tqdm(list_etudiants):
+        # pdb.set_trace()
+    # Obtenir la liste des EC pour chaque UE et calculer la moyenne
+        for ue_id in liste_ue:
+            liste_note_ec = []
+            liste_ec_par_ue = r.table('element_const').filter(
+                r.row['ue_id'].eq(ue_id)
+            ).run(conn)
+            # print(f'Liste des EC de {ue} : {liste_ec_par_ue}')
+
+            # pour chaque étudiant, obtenir la liste des moyennes des EC pour un UE
+            # puis faire la moyenne pour avoir la moyenne de l'UE
+            for ec in liste_ec_par_ue:
+                # print(f'Recuperation de la note de {ec}')
+                moyenne_ec = r.table('moyenne_ec').filter(
+                    r.and_(
+                        r.row['id_ec'].eq(ec['id']),
+                        r.row['id_etudiant'].eq(etudiant[0]),
+                        r.row['id_semestre'].eq(semestre)
+                    )
+                ).run(conn)
+
+                # il doit y avoir normalement un seul objet:
+                # pdb.set_trace()
+                # note = 0
+                for value in moyenne_ec:
+                    note = value['note']
+                    # break
+
+                liste_note_ec.append(note)
+                # pdb.set_trace()
+
+            # pdb.set_trace()
+            # calculer la moyenne de l'ue
+            # pprint.pprint(liste_note_ec)
+            if len(liste_note_ec) != 0:
+                moyenne_ue = statistics.mean(liste_note_ec)
+                ue_valide = False
+                if moyenne_ue >= 10:
+                    ue_valide = True
+                # print(f"Etudiant:{etudiant[1]} - UE:{ue['id']} - Moy: {moyenne_ue}")
+
+                # inserer dans la base
+                r.table('moyenne_ue').insert({
+                    'id_annee': annee,
+                    'id_niveau': niveau,
+                    'id_semestre': semestre,
+                    'id_session': session,
+                    'id_ue': ue_id,
+                    'id_etudiant': etudiant[0],
+                    'moyenne_ue': moyenne_ue,
+                    'valide': ue_valide
+                }).run(conn)

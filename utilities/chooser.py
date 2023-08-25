@@ -31,6 +31,7 @@ def tuple_selector(message, list):
         print("\t".join(item_strs))
 
     # Ask for user input
+    # import pdb; pdb.set_trace()
     choice = int(input(message))
 
     # Return corresponding element
