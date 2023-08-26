@@ -106,3 +106,14 @@ def get_pretty_name(rethinkdb_connection, table, id, champ):
     raw_result = r.table(table).get(id).run(rethinkdb_connection)
     result = raw_result[champ]
     return result
+
+def get_mention(note):
+    mention = "Passable"
+    if note >= 16:
+        mention = "Très Bien"
+    elif note >= 14:
+        mention = "Bien"
+    elif note >= 12:
+        mention = "Assez Bien"
+
+    return mention

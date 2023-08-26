@@ -460,15 +460,18 @@ def generer_matiere_a_repasser_session_1():
     repertoire_actuel = os.getcwd()  # là ou on se trouve
     repertoire_xlsx = os.path.join(repertoire_actuel, 'xlsx')  # là ou se trouve le repertoire xlsx
     nom_du_ficher_excel = f'matiere_a_repasser_Semestre{semestre_pretty}_Niveau{niveau_pretty}_Annee{annee}.xlsx'
+    nom_du_ficher_excel_avec_note = f'note_Semestre{semestre_pretty}_Niveau{niveau_pretty}_Annee{annee}.xlsx'
 
     # créer un fichier excel
     matiere_a_repasser = openpyxl.Workbook()
+    note = openpyxl.Workbook()
 
     # créer un objet excel
     classeur = matiere_a_repasser.active
-
+    classeur_note = note.active
     # inserer les headers
     classeur.append(headers)
+    classeur_note.append(headers)
 
     # nous allons utiliser la liste_moyenne_ec et inserer les notes dans le fichier excel
     for etudiant_id, notes in tqdm(liste_moyenne_ec.items()):
@@ -487,14 +490,21 @@ def generer_matiere_a_repasser_session_1():
             else:
                 row_to_insert = (niveau_pretty, semestre_pretty, session, matricule, nom, prenoms, ec, "X")
             classeur.append(row_to_insert)
+            note_to_insert = (niveau_pretty, semestre_pretty, session , matricule, nom, prenoms, ec, note_dict['note'])
+            classeur_note.append(note_to_insert)
+            # pdb.set_trace()
 
     matiere_a_repasser.save(os.path.join(repertoire_xlsx, nom_du_ficher_excel))
+    note.save(os.path.join(repertoire_xlsx, nom_du_ficher_excel_avec_note))
 
     # nous allons créer un 'pivot table' à partir du fichier excel
     # Créer un dataframe pandas
     data = pd.read_excel(os.path.join(repertoire_xlsx, nom_du_ficher_excel))
+    data_note = pd.read_excel(os.path.join(repertoire_xlsx, nom_du_ficher_excel_avec_note))
+
     # df = pd.DataFrame(sheet.values)
     data.fillna('', inplace=True)
+    data_note.fillna(0, inplace=True)
 
     # pprint.pprint(data)
 
@@ -502,15 +512,23 @@ def generer_matiere_a_repasser_session_1():
     pivot_table = pd.pivot_table(data, values='note', index= ['matricule', 'nom', 'prenoms'], columns='ec',
                                  aggfunc=lambda x: ''.join(str(v) for v in x),
                                  fill_value='')
+    pivot_table_note = pd.pivot_table(data_note, values='note', index=['matricule', 'nom', 'prenoms'], columns='ec',
+                                 aggfunc=sum,
+                                 fill_value=0)
     # pivot_table['note'] = pivot_table['note'].astype(str)
-    pprint.pprint(pivot_table)
+    # pprint.pprint(pivot_table)
 
     # exporter le pivot table vers excel
     writer = pd.ExcelWriter(os.path.join(repertoire_xlsx, nom_du_ficher_excel))
+    writer_note = pd.ExcelWriter(os.path.join(repertoire_xlsx, nom_du_ficher_excel_avec_note))
+
     pivot_table.to_excel(writer, sheet_name='PivotTable')
+    pivot_table_note.to_excel(writer_note, sheet_name='PivotTable')
 
     # Sauvegarder
     writer.close()
+    writer_note.close()
+
 
 def calculer_moyenne_ue_session_1():
     """
@@ -618,3 +636,79 @@ def calculer_moyenne_ue_session_1():
                     'moyenne_ue': moyenne_ue,
                     'valide': ue_valide
                 }).run(conn)
+
+def admission_session_1():
+    """
+    Calcul l'admission à la premiere session. Si tous les ue d'un semestre sont validé, un étudiant passe à la première
+    session.
+    :return:
+    """
+    # 1.0 Choisir l'année universitaire
+    annee_choices = utility_functions.select_annee(conn)
+    annee_choisi = chooser.selector("Choisissez une année universitaire", annee_choices)
+    redis_client.set('annee', annee_choisi)
+
+    # 1.1 Choisir le niveau
+    niveaux_choices = utility_functions.select_niveau(conn)
+    niveau_choisi = chooser.selector("Choisissez un niveau", niveaux_choices)
+    # Sauver sur redis
+    redis_client.set('niveau_choisi', niveau_choisi)
+
+    # recuperer les variables nécessaires sur redis
+    annee = redis_client.get('annee').decode()
+    niveau = redis_client.get('niveau_choisi').decode()
+
+    # effacer les données precedentes s'il y a eu
+    r.table('admission_session1').filter(
+        r.and_(
+            r.row['id_annee'].eq(annee),
+            r.row['id_niveau'].eq(niveau)
+        )
+    ).delete().run(conn)
+
+    # Pour chaque etudiant, verifier si tous les semestres sont validés.
+    # Obtenir la liste des étudiants pour un niveau
+    list_etudiants = utility_functions.select_etudiant(conn, niveau)
+    for etudiant in tqdm(list_etudiants):
+        # Obtenir la liste des moyennes des UE
+        liste_moyenne_ue = r.table('moyenne_ue').eq_join('id_ue', r.table('unite_ens')).without(
+            {'right': 'id'}
+        ).zip().eq_join('id_etudiant', r.table('etudiant')).without({'right': 'id'}).zip().filter(
+            r.and_(
+                r.row['id_etudiant'].eq(etudiant[0]),
+                r.row['id_niveau'].eq(niveau)
+            )).run(conn)
+
+        moyennes_ue = []
+        for moyenne_ue in liste_moyenne_ue:
+            moyennes_ue.append(moyenne_ue)
+
+        admis_session1 = True
+        for moyenne_ue in moyennes_ue:
+            # pdb.set_trace()
+            if moyenne_ue['valide'] == False:
+                admis_session1 = False
+                break
+
+        # pdb.set_trace()
+        if admis_session1 == True:
+            # calculer la moyenne génerale
+            moyennes = []
+            for moyenne_ue in moyennes_ue:
+                moyennes.append(moyenne_ue['moyenne_ue'])
+
+            # pdb.set_trace()
+            moyenne_generale = statistics.mean(moyennes)
+
+            # calculer la mention
+            mention = utility_functions.get_mention(moyenne_generale)
+
+            # inserer dans la base
+            r.table('admission_session1').insert({
+                'id_annee': annee,
+                'id_niveau': niveau,
+                'id_etudiant': etudiant[0],
+                'admis_session1': admis_session1,
+                'moyenne_generale': moyenne_generale,
+                'mention': mention
+            }).run(conn)

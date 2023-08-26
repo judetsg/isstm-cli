@@ -14,6 +14,7 @@ choices = [
     'Moyenne EC - Session 1',
     'Matiere à repasser - Session 1',
     'Moyenne UE - Session 1',
+    'Admission - Session 1',
     "Saisir Note CC",
     "Quitter"
 ]
