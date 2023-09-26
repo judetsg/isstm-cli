@@ -83,29 +83,51 @@ def saisir_note_examen():
         # afficher la liste des étudiants en utilisant le niveau choisi
         while True:
             try:
+                # Si session 2, inserer directement dans la table moyenne_ec et
+                # filtrer uniquement les etudiants qui ont une ec à repasser
                 os.system('clear')
-                etudiant_id = chooser.tuple_selector('Choisir un étudiant: ',
-                                                     utility_functions.select_etudiant(conn, niveau_choisi))
+                # breakpoint()
+                if session == "2":
+                    # recuperer la liste des étudiants ayant une matière à repasser
+                    etudiant_id = chooser.tuple_selector('Choisir un étudiant: ',
+                                                         utility_functions.select_etudiant_repechage(conn, ec))
 
-                # saisir le rang
-                rang = questionary.text('Rang:').ask()
+                    # saisir le rang
+                    rang = questionary.text('Rang:').ask()
 
-                # saisir les anonymats
-                """
-                Pour saisir les anonymats, il nous faut l'année universitaire, le niveau, l'ec, le semestre et l'id de l'etudiant.
-                Nous allons utiliser et afficher les etudiants, en choisir un entrer son anonymat et ainsi de suite,
-                jusqu'à ce que nous cassons la boucle
-                """
-                r.table('notes').insert({
-                    'id': r.uuid(),
-                    'id_annee': annee,
-                    'niveau': niveau,
-                    'semestre': semestre,
-                    'etudiant_id': etudiant_id,
-                    'id_ec': ec,
-                    'session': session,
-                    'anonymat': lettre_code + rang,
-                }).run(conn)
+                    # inserer dans la table moyenne_ec directement
+                    r.table('moyenne_ec').insert({
+                        'id': r.uuid(),
+                        'id_annee': annee,
+                        'id_ec': ec,
+                        'id_etudiant': etudiant_id,
+                        'id_semestre': semestre,
+                        'id_session': session,
+                        'anonymat': lettre_code + rang,
+                    }).run(conn)
+                else:
+                    etudiant_id = chooser.tuple_selector('Choisir un étudiant: ',
+                                                         utility_functions.select_etudiant(conn, niveau_choisi))
+
+                    # saisir le rang
+                    rang = questionary.text('Rang:').ask()
+
+                    # saisir les anonymats
+                    """
+                    Pour saisir les anonymats, il nous faut l'année universitaire, le niveau, l'ec, le semestre et l'id de l'etudiant.
+                    Nous allons utiliser et afficher les etudiants, en choisir un entrer son anonymat et ainsi de suite,
+                    jusqu'à ce que nous cassons la boucle
+                    """
+                    r.table('notes').insert({
+                        'id': r.uuid(),
+                        'id_annee': annee,
+                        'niveau': niveau,
+                        'semestre': semestre,
+                        'etudiant_id': etudiant_id,
+                        'id_ec': ec,
+                        'session': session,
+                        'anonymat': lettre_code + rang,
+                    }).run(conn)
             except KeyboardInterrupt:
                 break
 

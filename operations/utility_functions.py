@@ -1,3 +1,5 @@
+import pprint
+
 import questionary
 from data import r
 
@@ -46,6 +48,20 @@ def select_etudiant(rethinkdb_connection, niveau):
                           else (etudiant['id_etudiant'], etudiant['nom'])
                                 for etudiant in etudiants ]
 
+    return list_of_etudiants
+
+# renvoie la liste des étudiants ayant devant faire un repechage pour un EC
+def select_etudiant_repechage(rethinkdb_connection, id_ec):
+    etudiants = r.table("moyenne_ec").eq_join("id_etudiant", r.table("etudiant"))\
+        .without({'right': 'id'}).zip().eq_join("id_ec", r.table("element_const"))\
+        .without({'right': 'id'}).zip().order_by("nom")\
+        .filter(r.and_(r.row["id_ec"].eq(id_ec), r.row["repasser"].eq(True)))\
+        .run(rethinkdb_connection)
+
+    list_of_etudiants = [(etudiant['id_etudiant'], etudiant['nom'], etudiant['prenoms'])
+                         if etudiant.get('prenoms') is not None
+                         else (etudiant['id_etudiant'], etudiant['nom'])
+                         for etudiant in etudiants]
     return list_of_etudiants
 
 # This function extracts the first non-'Next' value from the given dictionary.
