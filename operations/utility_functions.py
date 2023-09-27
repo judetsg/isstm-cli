@@ -133,3 +133,63 @@ def get_mention(note):
         mention = "Assez Bien"
 
     return mention
+
+
+def select_note_repechage(rethinkdb_connection, annee, semestre, ec, session):
+    notes = r.table('moyenne_ec')\
+        .eq_join('id_ec', r.table('element_const'))\
+        .without({'right': 'id'}).zip().filter(
+        (r.row['id_annee'] == annee) & (r.row['id_semestre'] == semestre) &
+        (r.row['id_session'] == session) & (r.row['id_ec'] == ec)
+    ).order_by(r.asc('anonymat')).run(rethinkdb_connection)
+
+    # print(notes)
+
+    list_of_notes = [
+        (note['id'], note['anonymat'], note['appellation_ec']) for note in notes
+    ]
+
+    return list_of_notes
+
+
+def get_note_session2(rethinkdb_connection, ec, etudiant_id, semestre):
+    note = r.table('moyenne_ec').filter(
+        r.and_(
+            r.row['id_session'].eq('2'),
+            r.row['id_etudiant'].eq(etudiant_id),
+            r.row['id_ec'].eq(ec),
+            r.row['id_semestre'].eq(semestre)
+        )
+    ).run(rethinkdb_connection)
+
+    note_value = 0
+    for value in note:
+        # breakpoint()
+        if value.get('note') == None:
+            note_value = 0
+        else:
+            note_value = value['note']
+    # breakpoint()
+    return note_value
+
+
+def est_valide_session1(rethinkdb_connection, ec, etudiant_id, niveau, semestre):
+    note_brut = r.table('moyenne_ec').filter(
+        r.and_(
+            r.row['id_session'].eq('1'),
+            r.row['id_etudiant'].eq(etudiant_id),
+            r.row['id_niveau'].eq(niveau),
+            r.row['id_ec'].eq(ec),
+            r.row['id_semestre'].eq(semestre)
+        )
+    ).run(rethinkdb_connection)
+    # breakpoint()
+    est_valide = False
+    for validation in note_brut:
+        a_repasser = validation['repasser']
+        if a_repasser:
+            est_valide = False
+        else:
+            est_valide = True
+
+    return est_valide
