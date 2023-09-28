@@ -193,3 +193,25 @@ def est_valide_session1(rethinkdb_connection, ec, etudiant_id, niveau, semestre)
             est_valide = True
 
     return est_valide
+
+
+def get_note_session1(rethinkdb_connection, ec_id, etudiant_id, semestre):
+    note = r.table('moyenne_ec').filter(
+        r.and_(
+            r.row['id_session'].eq('1'),
+            r.row['id_etudiant'].eq(etudiant_id),
+            r.row['id_ec'].eq(ec_id),
+            r.row['id_semestre'].eq(semestre)
+        )
+    ).run(rethinkdb_connection)
+
+    note_value = 0
+    for value in note:
+        # breakpoint()
+        if value.get('note') == None:
+            note_value = 0
+        else:
+            note_value = value['note']
+    # breakpoint()
+    return note_value
+

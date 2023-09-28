@@ -1,4 +1,5 @@
 # Saisie des notes d'examen
+import math
 import os
 import statistics
 from decimal import Decimal
@@ -672,7 +673,7 @@ def calculer_moyenne_ue_session_1():
 
     for etudiant in tqdm(list_etudiants):
         # pdb.set_trace()
-    # Obtenir la liste des EC pour chaque UE et calculer la moyenne
+        # Obtenir la liste des EC pour chaque UE et calculer la moyenne
         for ue_id in liste_ue:
             liste_note_ec = []
             liste_ec_par_ue = r.table('element_const').filter(
@@ -856,93 +857,92 @@ def calculer_moyenne_ue_session_2():
 
     for etudiant in tqdm(list_etudiants):
         # pdb.set_trace()
-    # Obtenir la liste des EC pour chaque UE et calculer la moyenne
+        # Obtenir la liste des EC pour chaque UE et calculer la moyenne
         for ue_id in liste_ue:
-            liste_note_ec = []
-            liste_ec_par_ue = r.table('element_const').filter(
-                r.row['ue_id'].eq(ue_id)
-            ).run(conn)
-            # print(f'Liste des EC de {ue} : {liste_ec_par_ue}')
+            # ignorer les UE suivantes (MWAHAHAHAHAHA - fou rire maléfique)
+            ue_a_ignorer = []
+            if niveau == '1':
+                ue_a_ignorer = ['4', '6', '9', '11', '7', '34']
+            elif niveau == '2':
+                ue_a_ignorer = ['35', '20', '26', '22', '36', '17']
 
-            # pour chaque étudiant, obtenir la liste des moyennes des EC pour un UE
-            # puis faire la moyenne pour avoir la moyenne de l'UE
-            for ec in liste_ec_par_ue:
-                # print(f'Recuperation de la note de {ec}')
-                # si l'ec était à refaire, prendre la note, sinon mettre zero
-                # vérifier si l'ec était à refaire
-                a_refaire = False
-                verifier_si_a_refaire = r.table('moyenne_ec').filter(
-                    r.and_(
-                        r.row['id_ec'].eq(ec['id']),
-                        r.row['id_etudiant'].eq(etudiant[0]),
-                        r.row['id_semestre'].eq(semestre),
-                        r.row['id_session'].eq('1') # la verification des notes à refaire se fait dans la session 1 uniquement
-                    )
+            if ue_id in ue_a_ignorer:
+                pass
+            else:
+                liste_note_ec = []
+                liste_ec_par_ue = r.table('element_const').filter(
+                    r.row['ue_id'].eq(ue_id)
                 ).run(conn)
-                # pprint.pp(verifier_si_a_refaire)
-                for value in verifier_si_a_refaire:
-                    a_refaire = value['repasser']
+                # print(f'Liste des EC de {ue} : {liste_ec_par_ue}')
 
-                # si a_refaire, prendre la note de la deuxieme session, sinon mettre zero
-                if a_refaire:
-                    moyenne_ec = r.table('moyenne_ec').filter(
+                # pour chaque étudiant, obtenir la liste des moyennes des EC pour un UE
+                # puis faire la moyenne pour avoir la moyenne de l'UE
+                for ec in liste_ec_par_ue:
+                    note = 0
+                    # print(f'Recuperation de la note de {ec}')
+                    # si l'ec était à refaire, prendre la note, sinon mettre zero
+                    # vérifier si l'ec était à refaire
+                    a_refaire = False
+                    verifier_si_a_refaire = r.table('moyenne_ec').filter(
                         r.and_(
                             r.row['id_ec'].eq(ec['id']),
                             r.row['id_etudiant'].eq(etudiant[0]),
                             r.row['id_semestre'].eq(semestre),
-                            r.row['id_session'].eq('2')
+                            r.row['id_session'].eq('1') # la verification des notes à refaire se fait dans la session 1 uniquement
                         )
                     ).run(conn)
-                    # pprint.pp(moyenne_ec)
-                    for value in moyenne_ec:
-                        # check if the key 'note' exists (si le prof n'a pas encore remis de copie, par exemple)
-                        # Franglish, quand tu me prends BWAHAHAHAHAHAH
-                        if value.get('note') == None:
-                            note = 0
-                        else:
-                            note = value['note']
-                else:
-                    # moyenne_ec = r.table('moyenne_ec').filter(
-                    #     r.and_(
-                    #         r.row['id_ec'].eq(ec['id']),
-                    #         r.row['id_etudiant'].eq(etudiant[0]),
-                    #         r.row['id_semestre'].eq(semestre),
-                    #         r.row['id_session'].eq('1')
-                    #     )
-                    # ).run(conn)
-                    #
-                    # # il doit y avoir normalement un seul objet:
-                    # # pdb.set_trace()
-                    # # note = 0
-                    # for value in moyenne_ec:
-                    #     note = value['note']
-                    #     # break
-                    note = 0
+                    # pprint.pp(verifier_si_a_refaire)
+                    for value in verifier_si_a_refaire:
+                        a_refaire = value['repasser']
 
-                liste_note_ec.append(note)
-                # pdb.set_trace()
+                    # si a_refaire, prendre la note de la deuxieme session, sinon prendre la note de la session 1
+                    if a_refaire:
+                        moyenne_ec = r.table('moyenne_ec').filter(
+                            r.and_(
+                                r.row['id_ec'].eq(ec['id']),
+                                r.row['id_etudiant'].eq(etudiant[0]),
+                                r.row['id_semestre'].eq(semestre),
+                                r.row['id_session'].eq('2')
+                            )
+                        ).run(conn)
+                        # pprint.pp(moyenne_ec)
+                        for value in moyenne_ec:
+                            # breakpoint()
+                            # check if the key 'note' exists (si le prof n'a pas encore remis de copie, par exemple)
+                            # Franglish, quand tu me prends BWAHAHAHAHAHAH
+                            if value.get('note') == None:
+                                note = 0
+                            else:
+                                note = value['note']
+                    else:
+                        #prendre la note de la session 1
+                        # breakpoint()
+                        note = utility_functions.get_note_session1(conn, ec['id'],etudiant[0], semestre)
 
-            # pdb.set_trace()
-            # calculer la moyenne de l'ue
-            # pprint.pprint(liste_note_ec)
-            if len(liste_note_ec) != 0:
-                moyenne_ue = statistics.mean(liste_note_ec)
-                ue_valide = False
-                if moyenne_ue >= 10:
-                    ue_valide = True
-                # print(f"Etudiant:{etudiant[1]} - UE:{ue['id']} - Moy: {moyenne_ue}")
+                    # breakpoint()
+                    liste_note_ec.append(note)
 
-                # inserer dans la base
-                r.table('moyenne_ue_session_2').insert({
-                    'id_annee': annee,
-                    'id_niveau': niveau,
-                    'id_semestre': semestre,
-                    'id_session': session,
-                    'id_ue': ue_id,
-                    'id_etudiant': etudiant[0],
-                    'moyenne_ue': moyenne_ue,
-                    'valide': ue_valide
-                }).run(conn)
+                # calculer la moyenne de l'ue
+                # pprint.pprint(liste_note_ec)
+                # breakpoint()
+                if len(liste_note_ec) != 0:
+                    moyenne_ue = statistics.mean(liste_note_ec)
+                    ue_valide = False
+                    if moyenne_ue >= 10:
+                        ue_valide = True
+                    print(f"Etudiant:{etudiant[1]} - UE:{ue_id} - Moy: {moyenne_ue}")
+                    # breakpoint()
+                    # inserer dans la base
+                    r.table('moyenne_ue_session_2').insert({
+                        'id_annee': annee,
+                        'id_niveau': niveau,
+                        'id_semestre': semestre,
+                        'id_session': session,
+                        'id_ue': ue_id,
+                        'id_etudiant': etudiant[0],
+                        'moyenne_ue': moyenne_ue,
+                        'valide': ue_valide
+                    }).run(conn)
 
 
 def admission_session_2():
@@ -991,35 +991,64 @@ def admission_session_2():
         for moyenne_ue in liste_moyenne_ue:
             moyennes_ue.append(moyenne_ue)
 
-        admis_session2 = True
+        # compter d'abord le nombre de moyenne d'UE
+        # ensuite vérifier si le nombre d'UE validé est supérieur à 75%
+        # si c'est le cas, l'etudiant est admis avec dette, sinon l'étudiant est recalé
+
+        # compter le nombre de moyenne UE et definir le seuil d'admission avec dette
+        nombre_moyenne_ue = len(moyennes_ue)
+        # breakpoint()
+        seuil_admission_avec_dette = int(math.floor(nombre_moyenne_ue * 0.7))
+
+        # compter le nombre d'UE valide
+        nombre_ue_valide = 0
+        admis_session2 = False
+        type_admission = None
         for moyenne_ue in moyennes_ue:
             # pdb.set_trace()
-            if moyenne_ue['valide'] == False:
-                admis_session2 = False
-                break
+            if moyenne_ue['valide'] == True:
+                nombre_ue_valide = nombre_ue_valide + 1
+
+        # verifier admission
+        # breakpoint()
+        if nombre_ue_valide == nombre_moyenne_ue:
+            # admis
+            admis_session2 = True
+            type_admission = "Admis"
+        elif nombre_ue_valide >= seuil_admission_avec_dette:
+            # admis avec dette
+            admis_session2 = True
+            type_admission = "Admis avec dette"
+        else:
+            # recalé
+            admis_session2 = False
+            type_admission = "Recalé"
+
+        # print(f'Etudiant: {etudiant[0]} - Nbre UE Valide: {nombre_ue_valide}')
+        # Calculer moyenne générale
+        # pdb.set_trace()
+        moyennes = []
+        for moyenne_ue in moyennes_ue:
+            moyennes.append(moyenne_ue['moyenne_ue'])
 
         # pdb.set_trace()
-        if admis_session2 == True:
-            # calculer la moyenne génerale
-            moyennes = []
-            for moyenne_ue in moyennes_ue:
-                moyennes.append(moyenne_ue['moyenne_ue'])
+        moyenne_generale = statistics.mean(moyennes)
 
-            # pdb.set_trace()
-            moyenne_generale = statistics.mean(moyennes)
+        # calculer la mention
+        mention = utility_functions.get_mention(moyenne_generale)
 
-            # calculer la mention
-            mention = utility_functions.get_mention(moyenne_generale)
-
-            # inserer dans la base
-            r.table('admission_session2').insert({
-                'id_annee': annee,
-                'id_niveau': niveau,
-                'id_etudiant': etudiant[0],
-                'admis_session2': admis_session2,
-                'moyenne_generale': moyenne_generale,
-                'mention': mention
-            }).run(conn)
+        # inserer dans la base
+        r.table('admission_session2').insert({
+            'id_annee': annee,
+            'id_niveau': niveau,
+            'id_etudiant': etudiant[0],
+            'admis_session2': admis_session2,
+            'moyenne_generale': moyenne_generale,
+            'type_admission': type_admission,
+            'mention': mention,
+            'nombre_ue_valide': f'{nombre_ue_valide}/{nombre_moyenne_ue}',
+            'seuil_admission_ue': seuil_admission_avec_dette
+        }).run(conn)
 
 
 def generer_note_session_2():
@@ -1111,7 +1140,7 @@ def generer_note_session_2():
             # si la note est validé en session 1
             valide_session1 = utility_functions.est_valide_session1(conn, note_dict['id_ec'], etudiant_id,
                                                                     niveau, semestre)
-            print(f'Etudiant: {nom} - EC: {ec} - Session 1 Valide: {valide_session1}')
+            # print(f'Etudiant: {nom} - EC: {ec} - Session 1 Valide: {valide_session1}')
 
             if not valide_session1:
                 # breakpoint()
