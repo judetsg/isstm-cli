@@ -865,6 +865,8 @@ def calculer_moyenne_ue_session_2():
                 ue_a_ignorer = ['4', '6', '9', '11', '7', '34']
             elif niveau == '2':
                 ue_a_ignorer = ['35', '20', '26', '22', '36', '17']
+            elif niveau == '3':
+                ue_a_ignorer = ['30', '32']
 
             if ue_id in ue_a_ignorer:
                 pass
