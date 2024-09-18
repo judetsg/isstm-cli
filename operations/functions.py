@@ -242,6 +242,8 @@ def saisir_note_examen():
                                                                  utility_functions.select_note(conn, annee, niveau, semestre, ec,
                                                                                                session))
                             print(f"Anonymat: {anonymat_id}")
+                            if anonymat_id == "Retour":
+                                break  # Does this work?
                             # saisir la note
                             note = questionary.text('Note:').ask()
                             try:
