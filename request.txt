@@ -1,0 +1,14 @@
+# requete pour en- tete
+
+r.db('isstm').table('inscriptions')
+  .innerJoin(r.db('isstm').table('etudiant'), function (inscrRow, etudRow) {
+    return inscrRow('id_etudiant').eq(etudRow('id'))
+  }).without({right:'id'}).zip()
+  .innerJoin(r.db('isstm').table('annee_universitaire'), function(etudRow, aUnivRow) {
+    const id = etudRow('id_annee').coerceTo('number');
+    return id.eq(aUnivRow('id'))
+  }).without({right:'id'}).zip()
+  .innerJoin(r.db('isstm').table('niveau'), function(aUnivRow, niveauRow) {
+    return aUnivRow('id_niveau').eq(niveauRow('id'))
+  }).without({right:'id', left: ['id', 'id_annee', 'id_niveau']}).zip()
+    .filter({'id_etudiant': '81'})

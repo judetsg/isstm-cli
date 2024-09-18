@@ -15,7 +15,8 @@ def select_niveau(rethinkdb_connection):
 
 # function to choose semetre
 def select_semestre(rethinkdb_connection, niveau):
-    semestres = r.table('semestre').order_by('id').filter({"niveau_id": niveau}).run(rethinkdb_connection)
+    semestres = r.table('semestre').order_by('id').filter(
+        {"niveau_id": niveau}).run(rethinkdb_connection)
     semestres_choices = [
         questionary.Choice(title=semestre['semestre'], value=semestre['id']) for semestre in semestres
     ]
@@ -35,22 +36,25 @@ def select_ec(rethinkdb_connection, semestre):
 
 
 # function to return a list of students wrapped in tuples
-def select_etudiant(rethinkdb_connection, niveau):
+def select_etudiant(rethinkdb_connection, niveau, annee):
     etudiants = r.table('etudiant').order_by(index='nom')\
         .inner_join(r.table('inscriptions'),
                     lambda etudiant_row, inscriptions_row: etudiant_row['id'] == inscriptions_row['id_etudiant']).\
         without({'right': 'id'}).zip().filter({
-        'id_niveau': niveau
-    }).run(rethinkdb_connection)
+            'id_niveau': niveau,
+            'id_annee': annee
+        }).run(rethinkdb_connection)
 
-    list_of_etudiants = [ (etudiant['id_etudiant'], etudiant['nom'], etudiant['prenoms'])
-                          if etudiant.get('prenoms') is not None
-                          else (etudiant['id_etudiant'], etudiant['nom'])
-                                for etudiant in etudiants ]
+    list_of_etudiants = [(etudiant['id_etudiant'], etudiant['nom'], etudiant['prenoms'])
+                         if etudiant.get('prenoms') is not None
+                         else (etudiant['id_etudiant'], etudiant['nom'])
+                         for etudiant in etudiants]
 
     return list_of_etudiants
 
 # renvoie la liste des étudiants ayant devant faire un repechage pour un EC
+
+
 def select_etudiant_repechage(rethinkdb_connection, id_ec):
     etudiants = r.table("moyenne_ec").eq_join("id_etudiant", r.table("etudiant"))\
         .without({'right': 'id'}).zip().eq_join("id_ec", r.table("element_const"))\
@@ -65,6 +69,8 @@ def select_etudiant_repechage(rethinkdb_connection, id_ec):
     return list_of_etudiants
 
 # This function extracts the first non-'Next' value from the given dictionary.
+
+
 def extract_etudiant_from_dict(etudiant_dict):
     for value in etudiant_dict.values():
         if value != 'Next':
@@ -72,12 +78,15 @@ def extract_etudiant_from_dict(etudiant_dict):
             break
     return None
 
+
 def select_annee(rethinkdb_connection):
-    annees = r.table('annee_universitaire').order_by('id').run(rethinkdb_connection)
+    annees = r.table('annee_universitaire').order_by(
+        'id').run(rethinkdb_connection)
     annee_choices = [
         questionary.Choice(title=annee['annee'], value=annee['id']) for annee in annees
     ]
     return annee_choices
+
 
 def split_list(tuples):
     # calculate the size of each chunk
@@ -95,7 +104,7 @@ def split_list(tuples):
     if remainder == 2:
         list2.append(tuples[-2])
 
-    return [ list1, list2, list3 ]
+    return [list1, list2, list3]
 
 
 def select_note(rethinkdb_connection, annee, niveau, semestre, ec, session):
@@ -115,13 +124,17 @@ def select_note(rethinkdb_connection, annee, niveau, semestre, ec, session):
 
     return list_of_notes
 
+
 """
 Cette fonction permet d'avoir des données autres que l'id à partir d'une table
 """
+
+
 def get_pretty_name(rethinkdb_connection, table, id, champ):
     raw_result = r.table(table).get(id).run(rethinkdb_connection)
     result = raw_result[champ]
     return result
+
 
 def get_mention(note):
     mention = "Passable"
@@ -215,3 +228,10 @@ def get_note_session1(rethinkdb_connection, ec_id, etudiant_id, semestre):
     # breakpoint()
     return note_value
 
+# Recuperer année universitaire à partir id
+
+
+def recup_annee_univ(rethinkdb_connection, id_annee: int):
+    annee = r.table('annee_universitaire').filter(
+        {'id': id_annee}).run(rethinkdb_connection)
+    return annee['annee']

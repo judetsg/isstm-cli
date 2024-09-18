@@ -1,0 +1,7 @@
+[
+{"admis_session2": false, "id": "136", "id_annee": "1", "id_niveau": "2", "matricule": "INCONNU-1", "mention": "Passable", "moyenne_generale": 8.427083333333334, "nom": "RASAMIMANANA", "nombre_ue_valide": "3/8", "prenoms": "Julpha Murinot", "seuil_admission_ue": 5, "type_admission": "Recal\u00e9"},
+{"admis_session2": false, "id": "137", "id_annee": "1", "id_niveau": "2", "matricule": "INCONNU-2", "mention": "Passable", "moyenne_generale": 8.416666666666666, "nom": "MOHAMED", "nombre_ue_valide": "4/8", "prenoms": "Hamadi", "seuil_admission_ue": 5, "type_admission": "Recal\u00e9"},
+{"admis_session2": false, "id": "96", "id_annee": "1", "id_niveau": "2", "matricule": "10ISST21-790FGCI/GINFO", "mention": "Passable", "moyenne_generale": 9.755208333333334, "nom": "RASOANIRINA", "nombre_ue_valide": "4/8", "prenoms": "Asuda Soraya", "seuil_admission_ue": 5, "type_admission": "Recal\u00e9"},
+{"admis_session2": false, "id": "97", "id_annee": "1", "id_niveau": "2", "matricule": "10ISST21-909FGCI/GINFO", "mention": "Passable", "moyenne_generale": 8.520833333333334, "nom": "RASOLONIAINA", "nombre_ue_valide": "3/8", "prenoms": "Herman Donn\ufffd Julien", "seuil_admission_ue": 5, "type_admission": "Recal\u00e9"},
+{"admis_session2": false, "id": "99", "id_annee": "1", "id_niveau": "2", "matricule": "10ISST21-894FGCI/GINFO", "mention": "Passable", "moyenne_generale": 0, "nom": "TOLOJANAHARY", "nombre_ue_valide": "0/8", "prenoms": "Ulf Krastells", "seuil_admission_ue": 5, "type_admission": "Recal\u00e9"}
+]

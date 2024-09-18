@@ -1,0 +1,8 @@
+[
+{"id": "1", "niveau_id": "1", "semestre": "S1"},
+{"id": "2", "niveau_id": "1", "semestre": "S2"},
+{"id": "3", "niveau_id": "2", "semestre": "S3"},
+{"id": "4", "niveau_id": "2", "semestre": "S4"},
+{"id": "5", "niveau_id": "3", "semestre": "S5"},
+{"id": "6", "niveau_id": "3", "semestre": "S6"}
+]

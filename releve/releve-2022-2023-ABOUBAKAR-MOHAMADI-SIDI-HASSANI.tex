@@ -1,0 +1,81 @@
+\documentclass[a4paper, 10pt]{article}
+\usepackage[margin=0.5in]{geometry}
+\usepackage{graphicx}
+\usepackage{verbatim}
+\usepackage{kpfonts}
+\usepackage{setspace}
+\usepackage{tabularx}
+\usepackage{colortbl,xcolor}
+
+\definecolor{darkgrey}{rgb}{0.66, 0.66, 0.66}
+\begin{document}
+% Header starts here
+%
+\noindent
+%\begin{comment}
+\begin{minipage}{0.15\textwidth}
+	% logo umg
+	\includegraphics[width=1\textwidth]{logo_umg.png}
+\end{minipage}% ---- this was the problem I needed to put this to remove extra space
+% And I had to remove all the blank lines between the minipages because all of them
+% counts
+\hfill
+\begin{minipage}{0.65\textwidth}
+	% text in the middle
+	\begin{center}
+		\uppercase{repoblikan'i madagasikara}\\
+		\textit{Fitiavana - Tanindrazana - Fandrosoana} \\
+		\rule{0.4\textwidth}{0.5pt} \\
+		\uppercase{\textbf{ministère de l'enseignement supérieur et de la recherche scientifique}} \\
+		\rule{0.4\textwidth}{0.5pt} \\
+		\uppercase{université de mahajanga}
+	\end{center}
+\end{minipage}% --- this is needed to remove extra space
+\hfill
+\begin{minipage}{0.15\textwidth}
+	% logo umg
+	\includegraphics[width=1\textwidth]{logo_isstm.png}
+\end{minipage}\\
+% below is a blank space, and it counts. I mention it here because I didn't know
+% and it affected the formatting. This is not like a source code where blank space is ignored
+
+\centering \uppercase{\textbf{institut superieur des sciences et technologies de mahajanga}}\\
+\centering \rule{0.4\textwidth}{0.5pt}\\
+\begin{spacing}{1.5}
+	\centering {\fontsize{12}{14}\selectfont \textbf{\uppercase{licence professionnelle}}\\
+		\centering Parcours: \textbf{Génie Informatique}\\
+		\centering Mention: \textbf{Sciences et Techniques du Numerique et Physique Appliqués}}\\
+\end{spacing}
+\centering \rule{0.4\textwidth}{0.5pt}\\
+%
+% Header ends here
+%
+% The main part starts here
+%
+\begin{spacing}{1.5}
+	\centering {\fontsize{16}{14}\selectfont \textbf{Relevé de Notes}}\\
+\end{spacing}
+%
+% Identity of the student
+%
+% This creates a new data type for tabularx that centers its content
+%
+\newcolumntype{Y}{>{\centering\arraybackslash}X}
+\newcolumntype{s}{>{\hsize=.2\hsize}X}
+\newcolumntype{b}{>{\hsize=.6\hsize}X}
+\centering
+\begin{tabularx}{\textwidth}{|X|X|}
+	\hline
+	Nom et Prénoms: \textbf{ABOUBAKAR MOHAMADI SIDI HASSANI} & Matricule: \textbf{11ISST22-1173FGCI/GINFO}       \\ \hline
+	Niveau: \textbf{L1}                    & Année Universitaire: \textbf{2022-2023} \\	\hline
+\end{tabularx}
+%
+% The main content
+%
+\centering
+\begin{tabularx}{\textwidth}{|b|s|s|}
+	\hline
+	\cellcolor{black} \textcolor{white}{\textbf{Unité d'Enseignement/EC}} & \cellcolor{black} \textcolor{white}{\textbf{Crédits}} & \cellcolor{black} \textcolor{white}{\textbf{Notes}} \\ \hline
+	\input{body-2022-2023-ABOUBAKAR-MOHAMADI-SIDI-HASSANI.tex}
+\end{tabularx}
+\end{document}

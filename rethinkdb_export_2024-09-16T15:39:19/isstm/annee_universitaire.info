@@ -1,0 +1,1 @@
+{"db": {"id": "3f95ee95-ac58-45c0-9ac7-19758d577e4e", "name": "isstm", "type": "DB"}, "doc_count_estimates": [4], "id": "717168f1-4945-4b34-a0e6-47862325522f", "indexes": [], "name": "annee_universitaire", "primary_key": "id", "type": "TABLE", "write_hook": null}

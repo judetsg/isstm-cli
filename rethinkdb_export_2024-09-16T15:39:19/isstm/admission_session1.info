@@ -1,0 +1,1 @@
+{"db": {"id": "3f95ee95-ac58-45c0-9ac7-19758d577e4e", "name": "isstm", "type": "DB"}, "doc_count_estimates": [2], "id": "94d9c541-c2a0-4e83-aa01-ac10205b6d15", "indexes": [], "name": "admission_session1", "primary_key": "id", "type": "TABLE", "write_hook": null}

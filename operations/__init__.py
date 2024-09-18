@@ -11,5 +11,6 @@ operations = {
     'Moyenne UE - Session 2':functions.calculer_moyenne_ue_session_2,
     'Admission - Session 1':functions.admission_session_1,
     'Admission - Session 2':functions.admission_session_2,
-    'Quitter': functions.quitter
+    'Quitter': functions.quitter,
+    'Générer Relevé de Note': functions.generate_json
 }

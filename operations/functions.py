@@ -8,12 +8,15 @@ from tqdm import tqdm
 import openpyxl
 import pandas as pd
 import pdb
+import typing
+import json
 
 import questionary
 from rethinkdb import RethinkDB
 from data import db, redis_client
 from operations import utility_functions
 from utilities import chooser
+from tex import utility
 
 r = RethinkDB()
 # connect to the Rethinkdb database
@@ -32,7 +35,8 @@ def saisir_note_examen():
     """
     # 0. Choisir l'année universitaire
     annee_choices = utility_functions.select_annee(conn)
-    annee_choisi = chooser.selector("Choisissez une année universitaire", annee_choices)
+    annee_choisi = chooser.selector(
+        "Choisissez une année universitaire", annee_choices)
     redis_client.set('annee', annee_choisi)
 
     # 1. Choisir le niveau
@@ -43,13 +47,15 @@ def saisir_note_examen():
 
     # 2. choisir le semestre
     niveau_choisi = redis_client.get('niveau_choisi').decode()
-    semestre_choisi = chooser.selector('Choisissez un semestre', utility_functions.select_semestre(conn, niveau_choisi))
+    semestre_choisi = chooser.selector(
+        'Choisissez un semestre', utility_functions.select_semestre(conn, niveau_choisi))
     redis_client.set('semestre_choisi', semestre_choisi)
     # print(f" Semestre: {(redis_client.get('semestre_choisi')).decode()}")
 
     # 3. choisir l'ec
     semestre_choisi = redis_client.get('semestre_choisi').decode()
-    ec_choisi = chooser.selector('Choisissez un EC', utility_functions.select_ec(conn, semestre_choisi))
+    ec_choisi = chooser.selector(
+        'Choisissez un EC', utility_functions.select_ec(conn, semestre_choisi))
     redis_client.set('ec_choisi', ec_choisi)
     # print(f"EC: {(redis_client.get('ec_choisi')).decode()}")
 
@@ -63,7 +69,8 @@ def saisir_note_examen():
     # 4. choisir si on veut saisir les codes ou les notes
     activite = chooser.selector('Type de Saisie', [
         questionary.Choice(title='Anonymat', value='saisie_code'),
-        questionary.Choice(title='Correction Anonymat', value='correction_anonymat'),
+        questionary.Choice(title='Correction Anonymat',
+                           value='correction_anonymat'),
         questionary.Choice(title='Note', value='saisie_note')
     ])
     # redis_client.set('activite', activite)
@@ -78,7 +85,8 @@ def saisir_note_examen():
     if activite == 'saisie_code':
 
         # Saisir les lettres du code si on veut saisir les Anonymats
-        lettre_code = questionary.text(message='Entrez les lettres du code').ask()
+        lettre_code = questionary.text(
+            message='Entrez les lettres du code').ask()
         # redis_client.set('lettre_code', lettre_code)
 
         # afficher la liste des étudiants en utilisant le niveau choisi
@@ -108,7 +116,7 @@ def saisir_note_examen():
                     }).run(conn)
                 else:
                     etudiant_id = chooser.tuple_selector('Choisir un étudiant: ',
-                                                         utility_functions.select_etudiant(conn, niveau_choisi))
+                                                         utility_functions.select_etudiant(conn, niveau_choisi, annee))
 
                     # saisir le rang
                     rang = questionary.text('Rang:').ask()
@@ -135,7 +143,8 @@ def saisir_note_examen():
     if activite == 'correction_anonymat':
 
         # Saisir les lettres du code si on veut saisir les Anonymats
-        lettre_code = questionary.text(message='Entrez les lettres du code').ask()
+        lettre_code = questionary.text(
+            message='Entrez les lettres du code').ask()
         # redis_client.set('lettre_code', lettre_code)
 
         # afficher la liste des étudiants en utilisant le niveau choisi
@@ -156,14 +165,14 @@ def saisir_note_examen():
                     # inserer dans la table moyenne_ec directement
                     r.table('moyenne_ec')\
                         .filter(r.and_(
-                        r.row['id_etudiant'].eq(etudiant_id),
-                        r.row['id_ec'].eq(ec),
-                        r.row['id_session'].eq("2"),
-                        r.row['anonymat'].match(f'^{lettre_code}')
-                    )).update({'anonymat': lettre_code + rang}).run(conn)
+                            r.row['id_etudiant'].eq(etudiant_id),
+                            r.row['id_ec'].eq(ec),
+                            r.row['id_session'].eq("2"),
+                            r.row['anonymat'].match(f'^{lettre_code}')
+                        )).update({'anonymat': lettre_code + rang}).run(conn)
                 else:
                     etudiant_id = chooser.tuple_selector('Choisir un étudiant: ',
-                                                         utility_functions.select_etudiant(conn, niveau_choisi))
+                                                         utility_functions.select_etudiant(conn, niveau_choisi, annee))
 
                     # saisir le rang
                     rang = questionary.text('Rang:').ask()
@@ -175,12 +184,12 @@ def saisir_note_examen():
                     jusqu'à ce que nous cassons la boucle
                     """
                     r.table('notes') \
-                        .filter((r.row['etudiant_id'] == etudiant_id) & \
-                                (r.row['anonymat'].match(f'^{lettre_code}')) & \
+                        .filter((r.row['etudiant_id'] == etudiant_id) &
+                                (r.row['anonymat'].match(f'^{lettre_code}')) &
                                 (r.row['id_ec'] == ec)) \
                         .update({
-                        'anonymat': lettre_code + rang
-                    }).run(conn)
+                            'anonymat': lettre_code + rang
+                        }).run(conn)
             except KeyboardInterrupt:
                 break
 
@@ -245,7 +254,8 @@ def saisir_note(type):
         """
     # 0. Choisir l'année universitaire
     annee_choices = utility_functions.select_annee(conn)
-    annee_choisi = chooser.selector("Choisissez une année universitaire", annee_choices)
+    annee_choisi = chooser.selector(
+        "Choisissez une année universitaire", annee_choices)
     redis_client.set('annee', annee_choisi)
 
     # 1. Choisir le niveau
@@ -256,13 +266,15 @@ def saisir_note(type):
 
     # 2. choisir le semestre
     niveau_choisi = redis_client.get('niveau_choisi').decode()
-    semestre_choisi = chooser.selector('Choisissez un semestre', utility_functions.select_semestre(conn, niveau_choisi))
+    semestre_choisi = chooser.selector(
+        'Choisissez un semestre', utility_functions.select_semestre(conn, niveau_choisi))
     redis_client.set('semestre_choisi', semestre_choisi)
     # print(f" Semestre: {(redis_client.get('semestre_choisi')).decode()}")
 
     # 3. choisir l'ec
     semestre_choisi = redis_client.get('semestre_choisi').decode()
-    ec_choisi = chooser.selector('Choisissez un EC', utility_functions.select_ec(conn, semestre_choisi))
+    ec_choisi = chooser.selector(
+        'Choisissez un EC', utility_functions.select_ec(conn, semestre_choisi))
     redis_client.set('ec_choisi', ec_choisi)
     # print(f"EC: {(redis_client.get('ec_choisi')).decode()}")
 
@@ -308,7 +320,7 @@ def saisir_note(type):
 
             else:
                 etudiant_id = chooser.tuple_selector('Choisir un étudiant: ',
-                                                     utility_functions.select_etudiant(conn, niveau_choisi))
+                                                     utility_functions.select_etudiant(conn, niveau_choisi, annee))
 
                 # saisir la note
                 note = questionary.text('Note:').ask()
@@ -333,7 +345,6 @@ def saisir_note(type):
                     'type': type
                 }).run(conn)
 
-
         except KeyboardInterrupt:
             break
 
@@ -353,7 +364,8 @@ def calculer_moyenne_ec_session_1():
     # 1. prendre la liste des ECs qui ont des notes pour le semestre et l'année universitaire donnée
     # 1.0 Choisir l'année universitaire
     annee_choices = utility_functions.select_annee(conn)
-    annee_choisi = chooser.selector("Choisissez une année universitaire", annee_choices)
+    annee_choisi = chooser.selector(
+        "Choisissez une année universitaire", annee_choices)
     redis_client.set('annee', annee_choisi)
 
     # 1.1 Choisir le niveau
@@ -364,7 +376,8 @@ def calculer_moyenne_ec_session_1():
 
     # 1.2 choisir le semestre
     niveau_choisi = redis_client.get('niveau_choisi').decode()
-    semestre_choisi = chooser.selector('Choisissez un semestre', utility_functions.select_semestre(conn, niveau_choisi))
+    semestre_choisi = chooser.selector(
+        'Choisissez un semestre', utility_functions.select_semestre(conn, niveau_choisi))
     redis_client.set('semestre_choisi', semestre_choisi)
 
     # recuperer les variables nécessaires sur redis
@@ -431,7 +444,7 @@ def calculer_moyenne_ec_session_1():
 
         # pour chaque étudiant, s'il y a eu des CCs, obtenir une liste des notes de CCs et faire la moyenne
         list_etudiants = utility_functions.select_etudiant(conn,
-                                                           niveau_choisi)  # this returns a list of tuple of students
+                                                           niveau_choisi, annee)  # this returns a list of tuple of students
         # like this [(id, nom, prenoms)]
         for etudiant in list_etudiants:  # pour chaque etudiant
             if number_of_CCs != 0:  # s'il y a eu des CCs
@@ -440,8 +453,9 @@ def calculer_moyenne_ec_session_1():
                 liste_note_CCs = []  # liste des notes de CCs
                 for note in list_of_notes:  # pour chaque note
                     if note['etudiant_id'] == etudiant[0] and note[
-                        'type'] == "CC":  # comparer si c'est la note de l'etudiant concerné
-                        liste_note_CCs.append(note['note'])  # ajouter la note de CCs à la liste
+                            'type'] == "CC":  # comparer si c'est la note de l'etudiant concerné
+                        # ajouter la note de CCs à la liste
+                        liste_note_CCs.append(note['note'])
 
                     if note['etudiant_id'] == etudiant[0] and note['type'] == "EX":
                         note_EX = note['note']
@@ -491,7 +505,8 @@ def calculer_moyenne_ec_session_1():
 def generer_matiere_a_repasser_session_1():
     # 1.0 Choisir l'année universitaire
     annee_choices = utility_functions.select_annee(conn)
-    annee_choisi = chooser.selector("Choisissez une année universitaire", annee_choices)
+    annee_choisi = chooser.selector(
+        "Choisissez une année universitaire", annee_choices)
     redis_client.set('annee', annee_choisi)
 
     # 1.1 Choisir le niveau
@@ -502,7 +517,8 @@ def generer_matiere_a_repasser_session_1():
 
     # 1.2 choisir le semestre
     niveau_choisi = redis_client.get('niveau_choisi').decode()
-    semestre_choisi = chooser.selector('Choisissez un semestre', utility_functions.select_semestre(conn, niveau_choisi))
+    semestre_choisi = chooser.selector(
+        'Choisissez un semestre', utility_functions.select_semestre(conn, niveau_choisi))
     redis_client.set('semestre_choisi', semestre_choisi)
 
     # recuperer les variables nécessaires sur redis
@@ -539,14 +555,18 @@ def generer_matiere_a_repasser_session_1():
         ECs.append(ec)
 
     # obtenir les "pretty names" (silly comments, I know, I hope nobody would have to read this comment one day
-    niveau_pretty = utility_functions.get_pretty_name(conn, 'niveau', niveau, 'niveau')
-    semestre_pretty = utility_functions.get_pretty_name(conn, 'semestre', semestre, 'semestre')
+    niveau_pretty = utility_functions.get_pretty_name(
+        conn, 'niveau', niveau, 'niveau')
+    semestre_pretty = utility_functions.get_pretty_name(
+        conn, 'semestre', semestre, 'semestre')
 
     # comme header nous avons | niveau | semestre | session | id_etudiant | id_ec | note |
-    headers = ('niveau', 'semestre', 'session', 'matricule', 'nom', 'prenoms', 'ec', 'note')
+    headers = ('niveau', 'semestre', 'session',
+               'matricule', 'nom', 'prenoms', 'ec', 'note')
 
     repertoire_actuel = os.getcwd()  # là ou on se trouve
-    repertoire_xlsx = os.path.join(repertoire_actuel, 'xlsx')  # là ou se trouve le repertoire xlsx
+    # là ou se trouve le repertoire xlsx
+    repertoire_xlsx = os.path.join(repertoire_actuel, 'xlsx')
     nom_du_ficher_excel = f'matiere_a_repasser_Semestre{semestre_pretty}_Niveau{niveau_pretty}_Annee{annee}.xlsx'
     nom_du_ficher_excel_avec_note = f'note_Semestre{semestre_pretty}_Niveau{niveau_pretty}_Annee{annee}.xlsx'
 
@@ -563,22 +583,29 @@ def generer_matiere_a_repasser_session_1():
 
     # nous allons utiliser la liste_moyenne_ec et inserer les notes dans le fichier excel
     for etudiant_id, notes in tqdm(liste_moyenne_ec.items()):
-        matricule = utility_functions.get_pretty_name(conn, 'etudiant', etudiant_id, 'matricule')
-        nom = utility_functions.get_pretty_name(conn, 'etudiant', etudiant_id, 'nom')
+        matricule = utility_functions.get_pretty_name(
+            conn, 'etudiant', etudiant_id, 'matricule')
+        nom = utility_functions.get_pretty_name(
+            conn, 'etudiant', etudiant_id, 'nom')
         prenoms = None
-        try: # des fois un étudiant n'a pas de prénoms
-            prenoms = utility_functions.get_pretty_name(conn, 'etudiant', etudiant_id, 'prenoms')
+        try:  # des fois un étudiant n'a pas de prénoms
+            prenoms = utility_functions.get_pretty_name(
+                conn, 'etudiant', etudiant_id, 'prenoms')
         except:
             pass
 
         for note_dict in notes:
-            ec = utility_functions.get_pretty_name(conn, 'element_const', note_dict['id_ec'], 'appellation_ec')
+            ec = utility_functions.get_pretty_name(
+                conn, 'element_const', note_dict['id_ec'], 'appellation_ec')
             if note_dict['note'] >= 10:
-                row_to_insert = (niveau_pretty, semestre_pretty, session , matricule, nom, prenoms, ec, "O")
+                row_to_insert = (niveau_pretty, semestre_pretty,
+                                 session, matricule, nom, prenoms, ec, "O")
             else:
-                row_to_insert = (niveau_pretty, semestre_pretty, session, matricule, nom, prenoms, ec, "X")
+                row_to_insert = (niveau_pretty, semestre_pretty,
+                                 session, matricule, nom, prenoms, ec, "X")
             classeur.append(row_to_insert)
-            note_to_insert = (niveau_pretty, semestre_pretty, session , matricule, nom, prenoms, ec, note_dict['note'])
+            note_to_insert = (niveau_pretty, semestre_pretty, session,
+                              matricule, nom, prenoms, ec, note_dict['note'])
             classeur_note.append(note_to_insert)
             # pdb.set_trace()
 
@@ -588,7 +615,8 @@ def generer_matiere_a_repasser_session_1():
     # nous allons créer un 'pivot table' à partir du fichier excel
     # Créer un dataframe pandas
     data = pd.read_excel(os.path.join(repertoire_xlsx, nom_du_ficher_excel))
-    data_note = pd.read_excel(os.path.join(repertoire_xlsx, nom_du_ficher_excel_avec_note))
+    data_note = pd.read_excel(os.path.join(
+        repertoire_xlsx, nom_du_ficher_excel_avec_note))
 
     # df = pd.DataFrame(sheet.values)
     data.fillna('', inplace=True)
@@ -597,18 +625,19 @@ def generer_matiere_a_repasser_session_1():
     # pprint.pprint(data)
 
     # Créer un tableau croisé à partir du DataFrame
-    pivot_table = pd.pivot_table(data, values='note', index= ['matricule', 'nom', 'prenoms'], columns='ec',
+    pivot_table = pd.pivot_table(data, values='note', index=['matricule', 'nom', 'prenoms'], columns='ec',
                                  aggfunc=lambda x: ''.join(str(v) for v in x),
                                  fill_value='')
     pivot_table_note = pd.pivot_table(data_note, values='note', index=['matricule', 'nom', 'prenoms'], columns='ec',
-                                 aggfunc=sum,
-                                 fill_value=0)
+                                      aggfunc=sum,
+                                      fill_value=0)
     # pivot_table['note'] = pivot_table['note'].astype(str)
     # pprint.pprint(pivot_table)
 
     # exporter le pivot table vers excel
     writer = pd.ExcelWriter(os.path.join(repertoire_xlsx, nom_du_ficher_excel))
-    writer_note = pd.ExcelWriter(os.path.join(repertoire_xlsx, nom_du_ficher_excel_avec_note))
+    writer_note = pd.ExcelWriter(os.path.join(
+        repertoire_xlsx, nom_du_ficher_excel_avec_note))
 
     pivot_table.to_excel(writer, sheet_name='PivotTable')
     pivot_table_note.to_excel(writer_note, sheet_name='PivotTable')
@@ -628,7 +657,8 @@ def calculer_moyenne_ue_session_1():
 
     # 1.0 Choisir l'année universitaire
     annee_choices = utility_functions.select_annee(conn)
-    annee_choisi = chooser.selector("Choisissez une année universitaire", annee_choices)
+    annee_choisi = chooser.selector(
+        "Choisissez une année universitaire", annee_choices)
     redis_client.set('annee', annee_choisi)
 
     # 1.1 Choisir le niveau
@@ -639,7 +669,8 @@ def calculer_moyenne_ue_session_1():
 
     # 1.2 choisir le semestre
     niveau_choisi = redis_client.get('niveau_choisi').decode()
-    semestre_choisi = chooser.selector('Choisissez un semestre', utility_functions.select_semestre(conn, niveau_choisi))
+    semestre_choisi = chooser.selector(
+        'Choisissez un semestre', utility_functions.select_semestre(conn, niveau_choisi))
     redis_client.set('semestre_choisi', semestre_choisi)
 
     # recuperer les variables nécessaires sur redis
@@ -668,7 +699,7 @@ def calculer_moyenne_ue_session_1():
     ).delete().run(conn)
 
     # Obtenir la liste des étudiants pour un niveau
-    list_etudiants = utility_functions.select_etudiant(conn,niveau)
+    list_etudiants = utility_functions.select_etudiant(conn, niveau, annee)
     # pprint.pprint(list_etudiants)
 
     for etudiant in tqdm(list_etudiants):
@@ -725,6 +756,7 @@ def calculer_moyenne_ue_session_1():
                     'valide': ue_valide
                 }).run(conn)
 
+
 def admission_session_1():
     """
     Calcul l'admission à la premiere session. Si tous les ue d'un semestre sont validé, un étudiant passe à la première
@@ -733,7 +765,8 @@ def admission_session_1():
     """
     # 1.0 Choisir l'année universitaire
     annee_choices = utility_functions.select_annee(conn)
-    annee_choisi = chooser.selector("Choisissez une année universitaire", annee_choices)
+    annee_choisi = chooser.selector(
+        "Choisissez une année universitaire", annee_choices)
     redis_client.set('annee', annee_choisi)
 
     # 1.1 Choisir le niveau
@@ -756,7 +789,7 @@ def admission_session_1():
 
     # Pour chaque etudiant, verifier si tous les semestres sont validés.
     # Obtenir la liste des étudiants pour un niveau
-    list_etudiants = utility_functions.select_etudiant(conn, niveau)
+    list_etudiants = utility_functions.select_etudiant(conn, niveau, annee)
     for etudiant in tqdm(list_etudiants):
         # Obtenir la liste des moyennes des UE
         liste_moyenne_ue = r.table('moyenne_ue').eq_join('id_ue', r.table('unite_ens')).without(
@@ -812,7 +845,8 @@ def calculer_moyenne_ue_session_2():
 
     # 1.0 Choisir l'année universitaire
     annee_choices = utility_functions.select_annee(conn)
-    annee_choisi = chooser.selector("Choisissez une année universitaire", annee_choices)
+    annee_choisi = chooser.selector(
+        "Choisissez une année universitaire", annee_choices)
     redis_client.set('annee', annee_choisi)
 
     # 1.1 Choisir le niveau
@@ -823,7 +857,8 @@ def calculer_moyenne_ue_session_2():
 
     # 1.2 choisir le semestre
     niveau_choisi = redis_client.get('niveau_choisi').decode()
-    semestre_choisi = chooser.selector('Choisissez un semestre', utility_functions.select_semestre(conn, niveau_choisi))
+    semestre_choisi = chooser.selector(
+        'Choisissez un semestre', utility_functions.select_semestre(conn, niveau_choisi))
     redis_client.set('semestre_choisi', semestre_choisi)
 
     # recuperer les variables nécessaires sur redis
@@ -852,7 +887,7 @@ def calculer_moyenne_ue_session_2():
     ).delete().run(conn)
 
     # Obtenir la liste des étudiants pour un niveau
-    list_etudiants = utility_functions.select_etudiant(conn,niveau)
+    list_etudiants = utility_functions.select_etudiant(conn, niveau, annee)
     # pprint.pprint(list_etudiants)
 
     for etudiant in tqdm(list_etudiants):
@@ -890,7 +925,8 @@ def calculer_moyenne_ue_session_2():
                             r.row['id_ec'].eq(ec['id']),
                             r.row['id_etudiant'].eq(etudiant[0]),
                             r.row['id_semestre'].eq(semestre),
-                            r.row['id_session'].eq('1') # la verification des notes à refaire se fait dans la session 1 uniquement
+                            # la verification des notes à refaire se fait dans la session 1 uniquement
+                            r.row['id_session'].eq('1')
                         )
                     ).run(conn)
                     # pprint.pp(verifier_si_a_refaire)
@@ -917,9 +953,10 @@ def calculer_moyenne_ue_session_2():
                             else:
                                 note = value['note']
                     else:
-                        #prendre la note de la session 1
+                        # prendre la note de la session 1
                         # breakpoint()
-                        note = utility_functions.get_note_session1(conn, ec['id'],etudiant[0], semestre)
+                        note = utility_functions.get_note_session1(
+                            conn, ec['id'], etudiant[0], semestre)
 
                     # breakpoint()
                     liste_note_ec.append(note)
@@ -932,7 +969,8 @@ def calculer_moyenne_ue_session_2():
                     ue_valide = False
                     if moyenne_ue >= 10:
                         ue_valide = True
-                    print(f"Etudiant:{etudiant[1]} - UE:{ue_id} - Moy: {moyenne_ue}")
+                    print(
+                        f"Etudiant:{etudiant[1]} - UE:{ue_id} - Moy: {moyenne_ue}")
                     # breakpoint()
                     # inserer dans la base
                     r.table('moyenne_ue_session_2').insert({
@@ -955,7 +993,8 @@ def admission_session_2():
     """
     # 1.0 Choisir l'année universitaire
     annee_choices = utility_functions.select_annee(conn)
-    annee_choisi = chooser.selector("Choisissez une année universitaire", annee_choices)
+    annee_choisi = chooser.selector(
+        "Choisissez une année universitaire", annee_choices)
     redis_client.set('annee', annee_choisi)
 
     # 1.1 Choisir le niveau
@@ -978,7 +1017,7 @@ def admission_session_2():
 
     # Pour chaque etudiant, verifier si tous les semestres sont validés.
     # Obtenir la liste des étudiants pour un niveau
-    list_etudiants = utility_functions.select_etudiant(conn, niveau)
+    list_etudiants = utility_functions.select_etudiant(conn, niveau, annee)
     for etudiant in tqdm(list_etudiants):
         # Obtenir la liste des moyennes des UE
         liste_moyenne_ue = r.table('moyenne_ue_session_2').eq_join('id_ue', r.table('unite_ens')).without(
@@ -1056,7 +1095,8 @@ def admission_session_2():
 def generer_note_session_2():
     # 1.0 Choisir l'année universitaire
     annee_choices = utility_functions.select_annee(conn)
-    annee_choisi = chooser.selector("Choisissez une année universitaire", annee_choices)
+    annee_choisi = chooser.selector(
+        "Choisissez une année universitaire", annee_choices)
     redis_client.set('annee', annee_choisi)
 
     # 1.1 Choisir le niveau
@@ -1067,7 +1107,8 @@ def generer_note_session_2():
 
     # 1.2 choisir le semestre
     niveau_choisi = redis_client.get('niveau_choisi').decode()
-    semestre_choisi = chooser.selector('Choisissez un semestre', utility_functions.select_semestre(conn, niveau_choisi))
+    semestre_choisi = chooser.selector(
+        'Choisissez un semestre', utility_functions.select_semestre(conn, niveau_choisi))
     redis_client.set('semestre_choisi', semestre_choisi)
 
     # recuperer les variables nécessaires sur redis
@@ -1105,14 +1146,18 @@ def generer_note_session_2():
         ECs.append(ec)
 
     # obtenir les "pretty names" (silly comments, I know, I hope nobody would have to read this comment one day
-    niveau_pretty = utility_functions.get_pretty_name(conn, 'niveau', niveau, 'niveau')
-    semestre_pretty = utility_functions.get_pretty_name(conn, 'semestre', semestre, 'semestre')
+    niveau_pretty = utility_functions.get_pretty_name(
+        conn, 'niveau', niveau, 'niveau')
+    semestre_pretty = utility_functions.get_pretty_name(
+        conn, 'semestre', semestre, 'semestre')
 
     # comme header nous avons | niveau | semestre | session | id_etudiant | id_ec | note |
-    headers = ('niveau', 'semestre', 'session', 'matricule', 'nom', 'prenoms', 'ec', 'note')
+    headers = ('niveau', 'semestre', 'session',
+               'matricule', 'nom', 'prenoms', 'ec', 'note')
 
     repertoire_actuel = os.getcwd()  # là ou on se trouve
-    repertoire_xlsx = os.path.join(repertoire_actuel, 'xlsx')  # là ou se trouve le repertoire xlsx
+    # là ou se trouve le repertoire xlsx
+    repertoire_xlsx = os.path.join(repertoire_actuel, 'xlsx')
     # nom_du_ficher_excel = f'matiere_a_repasser_Semestre{semestre_pretty}_Niveau{niveau_pretty}_Annee{annee}_Session{session}.xlsx'
     nom_du_ficher_excel_avec_note = f'note_Semestre{semestre_pretty}_Niveau{niveau_pretty}_Annee{annee}_Session{session}.xlsx'
 
@@ -1129,16 +1174,20 @@ def generer_note_session_2():
 
     # nous allons utiliser la liste_moyenne_ec et inserer les notes dans le fichier excel
     for etudiant_id, notes in tqdm(liste_moyenne_ec.items()):
-        matricule = utility_functions.get_pretty_name(conn, 'etudiant', etudiant_id, 'matricule')
-        nom = utility_functions.get_pretty_name(conn, 'etudiant', etudiant_id, 'nom')
+        matricule = utility_functions.get_pretty_name(
+            conn, 'etudiant', etudiant_id, 'matricule')
+        nom = utility_functions.get_pretty_name(
+            conn, 'etudiant', etudiant_id, 'nom')
         prenoms = None
-        try: # des fois un étudiant n'a pas de prénoms
-            prenoms = utility_functions.get_pretty_name(conn, 'etudiant', etudiant_id, 'prenoms')
+        try:  # des fois un étudiant n'a pas de prénoms
+            prenoms = utility_functions.get_pretty_name(
+                conn, 'etudiant', etudiant_id, 'prenoms')
         except:
             pass
         # breakpoint()
         for note_dict in notes:
-            ec = utility_functions.get_pretty_name(conn, 'element_const', note_dict['id_ec'], 'appellation_ec')
+            ec = utility_functions.get_pretty_name(
+                conn, 'element_const', note_dict['id_ec'], 'appellation_ec')
             # si la note est validé en session 1
             valide_session1 = utility_functions.est_valide_session1(conn, note_dict['id_ec'], etudiant_id,
                                                                     niveau, semestre)
@@ -1148,11 +1197,12 @@ def generer_note_session_2():
                 # breakpoint()
                 note_session_2 = utility_functions.get_note_session2(conn, note_dict['id_ec'],
                                                                      etudiant_id, semestre)
-                note_to_insert = (niveau_pretty, semestre_pretty, session, matricule, nom, prenoms, ec, note_session_2)
+                note_to_insert = (niveau_pretty, semestre_pretty,
+                                  session, matricule, nom, prenoms, ec, note_session_2)
                 classeur_note.append(note_to_insert)
             else:
                 # breakpoint()
-                if note_dict.get('note') == None: # note pas encore saisie
+                if note_dict.get('note') == None:  # note pas encore saisie
                     note_to_insert = (niveau_pretty, semestre_pretty, session,
                                       matricule, nom, prenoms, ec, 0)
                     classeur_note.append(note_to_insert)
@@ -1167,7 +1217,8 @@ def generer_note_session_2():
     # nous allons créer un 'pivot table' à partir du fichier excel
     # Créer un dataframe pandas
     # data = pd.read_excel(os.path.join(repertoire_xlsx, nom_du_ficher_excel))
-    data_note = pd.read_excel(os.path.join(repertoire_xlsx, nom_du_ficher_excel_avec_note))
+    data_note = pd.read_excel(os.path.join(
+        repertoire_xlsx, nom_du_ficher_excel_avec_note))
 
     # df = pd.DataFrame(sheet.values)
     # data.fillna('', inplace=True)
@@ -1180,14 +1231,15 @@ def generer_note_session_2():
     #                              aggfunc=lambda x: ''.join(str(v) for v in x),
     #                              fill_value='')
     pivot_table_note = pd.pivot_table(data_note, values='note', index=['matricule', 'nom', 'prenoms'], columns='ec',
-                                 aggfunc=sum,
-                                 fill_value=0)
+                                      aggfunc=sum,
+                                      fill_value=0)
     # pivot_table['note'] = pivot_table['note'].astype(str)
     # pprint.pprint(pivot_table)
 
     # exporter le pivot table vers excel
     # writer = pd.ExcelWriter(os.path.join(repertoire_xlsx, nom_du_ficher_excel))
-    writer_note = pd.ExcelWriter(os.path.join(repertoire_xlsx, nom_du_ficher_excel_avec_note))
+    writer_note = pd.ExcelWriter(os.path.join(
+        repertoire_xlsx, nom_du_ficher_excel_avec_note))
 
     # pivot_table.to_excel(writer, sheet_name='PivotTable')
     pivot_table_note.to_excel(writer_note, sheet_name='PivotTable')
@@ -1195,3 +1247,138 @@ def generer_note_session_2():
     # Sauvegarder
     # writer.close()
     writer_note.close()
+
+# Générer un JSON qui contient toutes les EC, les UE, les moyennes et les résultats de chaque étudiant
+# afin de générer un relevé de note
+#
+
+
+def generate_json():
+    '''
+    Ce que nous voulons avoir, c'est un json qui contient pour une année universitaire
+    quelque chose comme le suivant:
+    {
+        '1': {
+            'annee': '2022-2023',
+            'niveau': {
+                'L1': {
+                    'matricule1': {
+                        'ue1': {
+                            'ec': <moyenne>,
+                            .....,
+                            'moyenne_ue': <moyenne_ue>
+                        },
+                        'ue2': ...,
+                        'moyenne_generale': ...,
+                        'admission': ...
+                    },
+                    'matricule2': {...}
+                },
+                'L2': {...},
+                'L3': {...}
+            }
+        },
+        '2': {...},
+        '3': {...}
+    }
+    '''
+    # 0 Choisir l'année universitaire
+    annee_choices = utility_functions.select_annee(conn)
+    annee_choisi = chooser.selector(
+        "Choisissez une année universitaire", annee_choices)
+
+    # rajouter année
+    annees = utility_functions.select_annee(conn)
+    annee_univ = chooser.selector('Année Universitaire:', annees)
+
+    niveaux_choices = utility_functions.select_niveau(conn)
+    niveau_choisi = chooser.selector("Choisissez un niveau", niveaux_choices)
+
+    etudiant_id = chooser.tuple_selector('Choisir un étudiant: ',
+                                         utility_functions.select_etudiant(conn, niveau_choisi, annee=annee_choisi))
+    # recuperer un json contenant toutes les données pour un relevé de note
+    #
+    data = r.table('niveau')\
+            .inner_join(r.table('semestre'),
+                        lambda niveau_row, semestre_row:
+                        niveau_row['id'] == semestre_row['niveau_id'])\
+            .without({"left": 'id'}).zip()\
+            .inner_join(r.table('unite_ens'),
+                        lambda sem_row, ue_row:
+                        sem_row['id'] == ue_row['semestre_id'])\
+            .without({'left': 'id'}).zip()\
+            .inner_join(r.table('element_const'),
+                        lambda ue_row, ec_row:
+                        ue_row['id'] == ec_row['ue_id'])\
+            .without({'left': ['id', 'niveau_id', 'semestre_id']}).zip()\
+            .inner_join(r.table('moyenne_ec'),
+                        lambda ec_row, moy_ec_row:
+                        ec_row['id'] == moy_ec_row['id_ec'])\
+            .without({'left': ['id'], 'right': ['id_ec', 'id_niveau', 'id_semestre']}).zip()\
+            .map(
+                lambda doc: doc.merge({'note_ec': doc['note']}).without('note')
+    )\
+        .group('appellation_ue')\
+        .inner_join(r.table('etudiant'),
+                    lambda moy_ec_row, etudiant_row:
+                    moy_ec_row['id_etudiant'] == etudiant_row['id'])\
+        .without({'right': 'id'}).zip()\
+        .filter(r.and_(
+            r.row['id_etudiant'].eq(etudiant_id),
+            r.row['id_annee'].eq(str(annee_univ))
+        ))\
+        .run(conn)
+
+    # informations pour l'en-tête
+    header_data = r.table('inscriptions')\
+        .inner_join(r.table('etudiant'),
+                    lambda inscr_row, etudiant_row:
+                    inscr_row['id_etudiant'] == etudiant_row['id'])\
+        .without({'right': 'id'}).zip()\
+        .inner_join(r.table('annee_universitaire'),
+                    lambda etudiant_row, a_univ_row:
+                    (etudiant_row['id_annee']).coerce_to('number') == a_univ_row['id'])\
+        .without({'right': 'id'}).zip()\
+        .inner_join(r.table('niveau'),
+                    lambda a_univ_row, niveau_row:
+                    a_univ_row['id_niveau'] == niveau_row['id'])\
+        .without({'right': 'id', 'left': ['id', 'id_annee', 'id_niveau']}).zip()\
+        .filter({'id_etudiant': etudiant_id})\
+        .run(conn)
+
+    main_template = 'tex/releve.tex'
+
+    # le template contenant le ficher tex pour le corps du relevé de note
+    body_template = 'tex/body.tex'
+
+#    print(header_data)
+    headers = list(header_data)
+
+    # Process the tex file
+    # utility.process_releve_header(headers[0], input_template)
+
+    # Le corps du releve de note
+
+    # créer un ficher tex que nous allons inclure dans le fichier principal
+    with open(body_template, 'w') as body_tex:
+        for UE in list(data):
+            # vérifier si l'ue n'est pas une liste vide, dans ce cas,
+            # c'est surement une UE d'un autre semestre,
+            # donc ne concernant pas notre étudiant séléctionné
+            #
+            # créer un ficher tex que nous allons inclure dans le fichier principal
+            if data[UE]:  # the UE is not empty
+                # Créer une ligne pour le UE
+                line_to_add = (
+                    f"\\cellcolor{{darkgray}} \\textcolor{{white}} "
+                    f"{{\\textbf{{{UE}}}}} & \\cellcolor{{darkgray}} \\textcolor{{white}} "
+                    f"{{\\textbf{{Crédits}}}} & \\cellcolor{{darkgray}} \\textcolor{{white}} "
+                    f"{{\\textbf{{Moyenne UE}}}} \\\\"
+                )
+                body_tex.write(line_to_add)
+
+        # Close the file
+        body_tex.close()
+
+    # process the main file now
+    utility.process_releve_de_note(headers[0], main_template, body_template)

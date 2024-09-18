@@ -19,6 +19,7 @@ choices = [
     'Admission - Session 1',
     'Admission - Session 2',
     "Saisir Note CC",
+    "Générer Relevé de Note",
     "Quitter"
 ]
 
