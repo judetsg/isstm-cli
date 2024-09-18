@@ -86,7 +86,6 @@ def selector(message, choices):
 #         return None
 
 def tuple_selector(message, list):
-    # print(list)
     list_of_tuples = utility_functions.split_list(list)
 
     # Create a dictionary to map numbers to elements
@@ -116,8 +115,6 @@ def tuple_selector(message, list):
                     column3.append(
                         f"{counter}. {str(display_item)[:fixed_width]:<{fixed_width}}")
                 counter += 1
-
-        print("\t".join(item_strs))
 
     # Print the columns
     for c1, c2, c3 in zip_longest(column1, column2, column3, fillvalue=""):
