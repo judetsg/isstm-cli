@@ -89,20 +89,18 @@ def select_annee(rethinkdb_connection):
 
 
 def split_list(tuples):
-    # calculate the size of each chunk
+    # Calculate the size of each chunk
     chunk_size = len(tuples) // 3
 
-    # create the 3 lists
+    # Create the 3 lists
     list1 = tuples[:chunk_size]
     list2 = tuples[chunk_size:2 * chunk_size]
     list3 = tuples[2 * chunk_size:]
 
-    # if there are any remaining elements, add them to the lists
+    # If there are any remaining elements, add them to the last list (list3)
     remainder = len(tuples) % 3
-    if remainder >= 1:
-        list1.append(tuples[-remainder])
-    if remainder == 2:
-        list2.append(tuples[-2])
+    if remainder > 0:
+        list3.extend(tuples[-remainder:])
 
     return [list1, list2, list3]
 
@@ -235,3 +233,11 @@ def recup_annee_univ(rethinkdb_connection, id_annee: int):
     annee = r.table('annee_universitaire').filter(
         {'id': id_annee}).run(rethinkdb_connection)
     return annee['annee']
+
+
+def clear_lines(n=5):
+    for _ in range(n):
+        # Move the cursor up one line
+        print('\033[F', end='')
+        # Clear the line
+        print('\033[K', end='')

@@ -1,0 +1,68 @@
+# Search for grades
+r.db("isstm").table("notes").filter(function(note){
+  return note("id_annee").eq("2").and(note("anonymat").match("^BP"))
+})
+
+
+# Add student
+r.db("isstm").table("etudiant").insert({
+  id: "2152",
+  matricule: "10ISST21-790FGCI/GINFO",
+  nom: "RASOANIRINA",
+  prenoms: "Asuda Soraya"
+})
+
+# Subscribe student
+r.db("isstm").table("inscriptions").insert({
+  id: "2152",
+  id_annee: "2",
+  id_etudiant: "2152",
+  id_niveau: "3",
+  matricule: "10ISSST21-FGCI/GINFO"
+})
+
+# update note
+r.db("isstm").table("notes").get("fa663c9d-ec5d-4d8e-a165-c930c470f9ca")
+  .update({
+    note: 5
+  })
+  
+# verify anonymat
+r.db("isstm").table("notes").filter(function(note){
+  return note("id_annee").eq("2").and(note("anonymat").match("^MT"))
+})
+
+
+# Insert Code and note
+r.db("isstm").table('notes').insert({
+    'id': r.uuid(),                                   
+    "anonymat": "MT28" ,
+    "etudiant_id": "2123" ,
+    "id_annee": "2" ,
+    "id_ec": "30" ,
+    "niveau": "2" ,
+    "note": 11 ,
+    "semestre": "3" ,
+    "session": "1" ,
+    "type": "EX"
+})
+
+# Insert EC
+r.db("isstm").table("element_const").insert({
+  appellation_ec: "SQL L2",
+  id: 211,
+  ue_id: 11
+})
+
+# Filter UE
+r.db("isstm").table("unite_ens").filter({semestre_id: "3"})
+
+# Insert UE
+r.db("isstm").table("unite_ens").insert({
+  appellation_ue: "BDD II",
+  id: "2301",
+  semestre_id: "3"
+})
+
+
+

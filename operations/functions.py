@@ -115,13 +115,15 @@ def saisir_note_examen():
                         # redis_client.set('lettre_code', lettre_code)
 
                         # afficher la liste des étudiants en utilisant le niveau choisi
-                        while True:
-                            try:
-                                # Si session 2, inserer directement dans la table moyenne_ec et
-                                # filtrer uniquement les etudiants qui ont une ec à repasser
-                                os.system('clear')
-                                # breakpoint()
-                                if session == "2":
+                        rang_counter = 1  # this is used to automatically enter the rang, prealably ordered
+                        # while True:
+                        try:
+                            # Si session 2, inserer directement dans la table moyenne_ec et
+                            # filtrer uniquement les etudiants qui ont une ec à repasser
+                            os.system('clear')
+                            # breakpoint()
+                            if session == "2":
+                                while True:
                                     # recuperer la liste des étudiants ayant une matière à repasser
                                     etudiant_id = chooser.tuple_selector('Choisir un étudiant: ',
                                                                          utility_functions.select_etudiant_repechage(conn, ec), socket)
@@ -141,18 +143,21 @@ def saisir_note_examen():
                                         'id_session': session,
                                         'anonymat': lettre_code + rang,
                                     }).run(conn)
-                                else:  # Session 1
+                            # SESSION 1 =============================================================================
+                            else:
+                                # Display the list of student
+                                chooser.displayer(utility_functions.select_etudiant(
+                                    conn, niveau_choisi, annee))
+                                while True:
                                     etudiant_id = chooser.tuple_selector('Choisir un étudiant: ',
-                                                                         utility_functions.select_etudiant(conn, niveau_choisi, annee), socket)
+                                                                         utility_functions.select_etudiant(conn, niveau_choisi, annee), socket, "anonymat")
                                     print(etudiant_id)
                                     if etudiant_id == "Retour":
                                         break  # Does this work?
-                                    # saisir le rang
-                                    # rang = questionary.text('Rang:').ask()
-                                    rang = chooser.simple_selector(
-                                        "Rang", socket)
+
+                                    rang = rang_counter
                                     print(rang)
-                                    # dummy=input("just a test")
+
                                     # saisir les anonymats
                                     """
                                     Pour saisir les anonymats, il nous faut l'année universitaire, le niveau, l'ec, le semestre et l'id de l'etudiant.
@@ -167,10 +172,14 @@ def saisir_note_examen():
                                         'etudiant_id': etudiant_id,
                                         'id_ec': ec,
                                         'session': session,
-                                        'anonymat': lettre_code + rang,
+                                        'anonymat': lettre_code + str(rang),
                                     }).run(conn)
-                            except KeyboardInterrupt:
-                                break
+                                    rang_counter += 1  # Increment the counter
+
+                                    # Move the cursor up five lines
+                                    utility_functions.clear_lines(5)
+                        except KeyboardInterrupt:
+                            break
 
                     if activite == 'correction_anonymat':
 
@@ -206,13 +215,17 @@ def saisir_note_examen():
                                             r.row['anonymat'].match(
                                                 f'^{lettre_code}')
                                         )).update({'anonymat': lettre_code + rang}).run(conn)
-                                else:  # session 1
+                                # SESSION 1================================================================================
+                                else:
                                     etudiant_id = chooser.tuple_selector('Choisir un étudiant: ',
                                                                          utility_functions.select_etudiant(conn, niveau_choisi, annee), socket)
                                     if etudiant_id == "Retour":
                                         break  # Does this work?
                                     # saisir le rang
-                                    rang = questionary.text('Rang:').ask()
+                                    # rang = questionary.text('Rang:').ask()
+                                    rang = chooser.simple_selector(
+                                        "Rang", socket)
+                                    print(rang)
 
                                     # saisir les anonymats
                                     """
@@ -235,13 +248,15 @@ def saisir_note_examen():
                         1. Récuperer les anonymats correspondants et les afficher en liste comme la liste des etudiants
                         2. Saisir les notes correspondantes
                         """
-                        while True:
-                            try:
-                                # Si session 2, inserer directement dans la table moyenne_ec et
-                                # filtrer uniquement les etudiants qui ont une ec à repasser
-                                os.system('clear')
-                                # breakpoint()
-                                if session == "2":
+
+                        try:
+                            # while True:
+                            # Si session 2, inserer directement dans la table moyenne_ec et
+                            # filtrer uniquement les etudiants qui ont une ec à repasser
+                            os.system('clear')
+                            # breakpoint()
+                            if session == "2":
+                                while True:
                                     # recuperer la liste des étudiants ayant une matière à repasser
                                     anonymat_id = chooser.tuple_selector('Choisir anonymat: ',
                                                                          utility_functions.select_note_repechage(conn, annee,
@@ -260,26 +275,45 @@ def saisir_note_examen():
                                     except ValueError:
                                         print(
                                             f"Erreur: tapez un nombre ({ValueError})")
-                                else:
-                                    anonymat_id = chooser.tuple_selector('Choisir anonymat: ',
-                                                                         utility_functions.select_note(conn, annee, niveau, semestre, ec,
-                                                                                                       session), socket)
-                                    print(f"Anonymat: {anonymat_id}")
-                                    if anonymat_id == "Retour":
-                                        break  # Does this work?
-                                    # saisir la note
-                                    note = questionary.text('Note:').ask()
-                                    try:
-                                        decimal_note = Decimal(note)
-                                        r.table('notes').get(anonymat_id).update({
-                                            'note': float(decimal_note),
-                                            'type': 'EX'
-                                        }).run(conn)
-                                    except ValueError:
+                            # SESSION 1================================================================================
+                            else:
+                                # anonymat_id = chooser.tuple_selector('Choisir anonymat: ',
+                                #                                      utility_functions.select_note(conn, annee, niveau, semestre, ec,
+                                #                                                                    session), socket, "note")
+                                # Display the list of student
+                                list = utility_functions.select_note(conn, annee, niveau, semestre, ec,
+                                                                     session)
+                                chooser.displayer(list)
+                                while True:
+                                    list = utility_functions.select_note(conn, annee, niveau, semestre, ec,
+                                                                         session)
+                                    sorted_list = sorted(
+                                        list, key=lambda x: chooser.natural_sort_key(x[1]))
+                                    for i in range(len(sorted_list)):
                                         print(
-                                            f"Erreur: tapez un nombre ({ValueError})")
-                            except KeyboardInterrupt:
-                                break
+                                            f"Anonymat : {sorted_list[i][1]}")
+                                        print(
+                                            f"Anonymat id: {sorted_list[i][0]}")
+                                        anonymat_id = sorted_list[i][0]
+
+                                        note = chooser.simple_selector(
+                                            "Note:", socket)
+                                        print(note)
+
+                                        # Move the cursor up five lines and clear the lines
+                                        utility_functions.clear_lines(5)
+                                        try:
+                                            decimal_note = Decimal(note)
+                                            r.table('notes').get(anonymat_id).update({
+                                                'note': float(decimal_note),
+                                                'type': 'EX'
+                                            }).run(conn)
+                                        except ValueError:
+                                            print(
+                                                f"Erreur: tapez un nombre ({ValueError})")
+                                    break
+                        except KeyboardInterrupt:
+                            break
 
 
 def quitter():
@@ -362,32 +396,31 @@ def saisir_note(type):
                 }).run(conn)
 
             else:
-                etudiant_id = chooser.tuple_selector('Choisir un étudiant: ',
-                                                     utility_functions.select_etudiant(conn, niveau_choisi, annee), socket)
+                # Display the list of student
+                chooser.displayer(utility_functions.select_etudiant(
+                    conn, niveau_choisi, annee))
+                while True:
+                    etudiant_id = chooser.tuple_selector('Choisir un étudiant: ',
+                                                         utility_functions.select_etudiant(conn, niveau_choisi, annee), socket, "cc")
+                    if etudiant_id == 999:
+                        break
+                    # saisir la note
+                    note = chooser.simple_selector("Note", socket)
+                    decimal_note = Decimal(note)
 
-                # saisir la note
-                note = questionary.text('Note:').ask()
-                decimal_note = Decimal(note)
-
-                # saisir les anonymats
-                """
-                Pour saisir les anonymats, il nous faut l'année universitaire, le niveau, l'ec, le semestre et l'id de l'etudiant.
-                Nous allons utiliser et afficher les etudiants, en choisir un entrer son anonymat et ainsi de suite,
-                jusqu'à ce que nous cassons la boucle
-                """
-
-                r.table('notes').insert({
-                    'id': r.uuid(),
-                    'id_annee': annee,
-                    'niveau': niveau,
-                    'semestre': semestre,
-                    'etudiant_id': etudiant_id,
-                    'id_ec': ec,
-                    'session': session,
-                    'note': float(decimal_note),
-                    'type': type
-                }).run(conn)
-
+                    r.table('notes').insert({
+                        'id': r.uuid(),
+                        'id_annee': annee,
+                        'niveau': niveau,
+                        'semestre': semestre,
+                        'etudiant_id': etudiant_id,
+                        'id_ec': ec,
+                        'session': session,
+                        'note': float(decimal_note),
+                        'type': type
+                    }).run(conn)
+                    # Clear the last five lines
+                    utility_functions.clear_lines(5)
         except KeyboardInterrupt:
             break
 
@@ -1425,16 +1458,3 @@ def generate_json():
 
     # process the main file now
     utility.process_releve_de_note(headers[0], main_template, body_template)
-
-
-def getVoiceTyping(stream, rec):
-    """
-    Return the text from the dictation on the microphone
-    """
-    data = stream.read(4096)  # read in chunks of 4096 bytes
-    if rec.AcceptWaveform(data):  # accept waveform of input voice
-        # parse the json result and get the recognized text
-        result = json.loads(rec.Result())
-        recognized_text = result['text']
-        print(recognized_text)
-        return recognized_text.strip()

@@ -1,7 +1,8 @@
 import vosk
 import pyaudio
 import json
-from text_to_num import text2num# The following has been taken from here https://medium.com/@nimritakoul01/offline-speech-to-text-in-python-f5d6454ecd02
+# The following has been taken from here https://medium.com/@nimritakoul01/offline-speech-to-text-in-python-f5d6454ecd02
+from text_to_num import text2num
 
 # this start a message storage on port 5555
 import zmq
