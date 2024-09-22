@@ -3,14 +3,34 @@ r.db("isstm").table("notes").filter(function(note){
   return note("id_annee").eq("2").and(note("anonymat").match("^BP"))
 })
 
+# Search for notes
+r.db("isstm").table("notes").filter(function(note){
+  return note("id_annee").eq("2").and(note("id_ec").eq("25"))
+})
+
 
 # Add student
 r.db("isstm").table("etudiant").insert({
-  id: "2152",
+  id: "2154",
   matricule: "10ISST21-790FGCI/GINFO",
   nom: "RASOANIRINA",
   prenoms: "Asuda Soraya"
 })
+
+# Search student by name
+r.db("isstm").table("etudiant").filter(
+  function (etudiant) { return etudiant("nom").match("^RAVOANGI") })
+  
+# View one student note be ec
+r.db("isstm").table("moyenne_ec").eqJoin("id_ec", r.db("isstm").table("element_const"))
+  .without({right:"id"}).zip()
+  .filter(function(note) { return note("id_annee").eq("1")
+    .and(note("id_etudiant").eq("97"))
+    .and(note("id_semestre").eq("4"))
+    })
+  .eqJoin("id_etudiant", r.db("isstm").table("etudiant"))
+  .without({right:"id"}).zip()
+  .orderBy('appellation_ec')
 
 # Subscribe student
 r.db("isstm").table("inscriptions").insert({
@@ -21,17 +41,14 @@ r.db("isstm").table("inscriptions").insert({
   matricule: "10ISSST21-FGCI/GINFO"
 })
 
+# Search inscription
+r.db("isstm").table("inscriptions").get("2153")
+
 # update note
 r.db("isstm").table("notes").get("fa663c9d-ec5d-4d8e-a165-c930c470f9ca")
   .update({
     note: 5
   })
-  
-# verify anonymat
-r.db("isstm").table("notes").filter(function(note){
-  return note("id_annee").eq("2").and(note("anonymat").match("^MT"))
-})
-
 
 # Insert Code and note
 r.db("isstm").table('notes').insert({
@@ -63,6 +80,7 @@ r.db("isstm").table("unite_ens").insert({
   id: "2301",
   semestre_id: "3"
 })
+
 
 
 

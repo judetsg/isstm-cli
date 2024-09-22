@@ -115,7 +115,10 @@ def saisir_note_examen():
                         # redis_client.set('lettre_code', lettre_code)
 
                         # afficher la liste des étudiants en utilisant le niveau choisi
-                        rang_counter = 1  # this is used to automatically enter the rang, prealably ordered
+
+                        # this is used to automatically enter the rang, prealably ordered
+                        rang_counter = int(
+                            input("Commencer les rangs par: ") or "1")
                         # while True:
                         try:
                             # Si session 2, inserer directement dans la table moyenne_ec et
@@ -133,6 +136,8 @@ def saisir_note_examen():
                                     # saisir le rang
                                     rang = questionary.text('Rang:').ask()
 
+                                    # effacer et inserer (pour correction)
+                                    # TODO: effacer d'abord
                                     # inserer dans la table moyenne_ec directement
                                     r.table('moyenne_ec').insert({
                                         'id': r.uuid(),
@@ -164,6 +169,12 @@ def saisir_note_examen():
                                     Nous allons utiliser et afficher les etudiants, en choisir un entrer son anonymat et ainsi de suite,
                                     jusqu'à ce que nous cassons la boucle
                                     """
+                                    # effacer et inserer (pour correction)
+                                    r.table('notes').filter(lambda note:
+                                                            r.and_(note['id_annee'].eq(annee), note['anonymat'].match(
+                                                                f"^{lettre_code + str(rang)}$"))
+                                                            ).delete().run(conn)
+                                    # inserer
                                     r.table('notes').insert({
                                         'id': r.uuid(),
                                         'id_annee': annee,
@@ -174,13 +185,14 @@ def saisir_note_examen():
                                         'session': session,
                                         'anonymat': lettre_code + str(rang),
                                     }).run(conn)
+
                                     rang_counter += 1  # Increment the counter
 
                                     # Move the cursor up five lines
                                     utility_functions.clear_lines(5)
                         except KeyboardInterrupt:
                             break
-
+                    # This should never be used
                     if activite == 'correction_anonymat':
 
                         # Saisir les lettres du code si on veut saisir les Anonymats
@@ -284,12 +296,14 @@ def saisir_note_examen():
                                 list = utility_functions.select_note(conn, annee, niveau, semestre, ec,
                                                                      session)
                                 chooser.displayer(list)
+                                start = int(
+                                    input("Commencez saisie par: ") or "1")
                                 while True:
                                     list = utility_functions.select_note(conn, annee, niveau, semestre, ec,
                                                                          session)
                                     sorted_list = sorted(
                                         list, key=lambda x: chooser.natural_sort_key(x[1]))
-                                    for i in range(len(sorted_list)):
+                                    for i in range(start-1, len(sorted_list)):
                                         print(
                                             f"Anonymat : {sorted_list[i][1]}")
                                         print(
@@ -385,7 +399,7 @@ def saisir_note(type):
                 decimal_note = Decimal(note)
 
                 # inserer dans la table moyenne_ec directement
-                r.table('moyenne_ec').insert({
+                r.table('moyenne_ec').update({
                     'id': r.uuid(),
                     'id_annee': annee,
                     'id_ec': ec,
@@ -394,7 +408,7 @@ def saisir_note(type):
                     'id_session': session,
                     'note': float(decimal_note),
                 }).run(conn)
-
+            # SESSION 1 ==========================================================================================
             else:
                 # Display the list of student
                 chooser.displayer(utility_functions.select_etudiant(
@@ -407,6 +421,20 @@ def saisir_note(type):
                     # saisir la note
                     note = chooser.simple_selector("Note", socket)
                     decimal_note = Decimal(note)
+
+                    # effacer et inserer (pour correction)
+                    r.table('notes').filter(lambda note:
+                                            r.and_(note['id_annee'].eq(annee),
+                                                   note['semestre'].eq(
+                                                       semestre),
+                                                   note['niveau'].eq(niveau),
+                                                   note['etudiant_id'].eq(
+                                                       etudiant_id),
+                                                   note['id_ec'].eq(ec),
+                                                   note['session'].eq(session)
+                                                   )
+                                            ).delete().run(conn)
+                    # inserer
 
                     r.table('notes').insert({
                         'id': r.uuid(),
