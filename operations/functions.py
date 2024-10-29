@@ -416,7 +416,8 @@ def saisir_note(type):
                 while True:
                     etudiant_id = chooser.tuple_selector('Choisir un étudiant: ',
                                                          utility_functions.select_etudiant(conn, niveau_choisi, annee), socket, "cc")
-                    if etudiant_id == 999:
+                    # print(etudiant_id)
+                    if etudiant_id == "Retour":
                         break
                     # saisir la note
                     note = chooser.simple_selector("Note", socket)
